@@ -22,16 +22,26 @@ storms <- head(storms, 1000)
 
 url <- "http://data.fcc.gov/api/block/find?format=json"
 
-latitude <- storms$BEGIN_LAT[100]
 
-longitude <- storms$BEGIN_LON[100]
+latitude <- storms$BEGIN_LAT
 
-request <- paste0(url, "&latitude=", latitude, "&longitude", longitude, "&showall=false")
+longitude <- storms$BEGIN_LON
+request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false")
+
+tracts <- NULL
 
 
+#  tracts[i, ] <- fromJSON(request)
+for (i in 1:1000) {
+  latitude <- storms$BEGIN_LAT[i]
+  longitude <- storms$BEGIN_LON[i]
+  request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false")
+  tracts[i] <- as.data.frame.list((fromJSON(request)), optional = FALSE)
+}
+
+# data.frame(matrix(unlist(l)
 # ok so i constructed the request url for the first obs
 # test!
-
 test <- GET(url = request)
 test$status_code
 test$content
@@ -47,4 +57,4 @@ str(jsontest)
 # this is another method 
 
 # now need to figure out how to loop or lapply over each entry. 
-
+test
