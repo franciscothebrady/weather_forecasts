@@ -77,10 +77,18 @@ st_names <- str_match(mos_output, st_pattern)
 st_names <- na.omit(st_names)
 head(st_names)
 
-# extract valid forecast times
-str_ (mos_output[4])
-vf_pattern <- "FHR" # figure out how to extract the entire line 
-vf_names <- str_match(mos_output, vf_pattern)
-head(vf_names, 20)
+# TEST: combining runtimes and station names as columns in df! (repeating both values n times)
+small_runtimes <- rep(runtimes[1:10], 5)
+small_stnames <- rep(st_names[1:10], 5)
+df <- data.frame(small_runtimes, small_stnames)
+df
+## seems like it worked, want to double check on how its repeating (by element or cycling through)
 
-?str_extract_all
+# extract valid forecast times
+vf_pattern <- "FHR  24  36  48  60  72  84  96 108 120 132 144 156 168 180 192" # theres gotta be a better way to do this
+vf_names <- str_extract(mos_output, vf_pattern)
+head(vf_names, 20)
+vf_names <- na.omit(vf_names)
+# split into individual elements
+vf_names <- str_split(vf_names, "\\s+")
+vf_names[1:10]
