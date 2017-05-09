@@ -51,10 +51,17 @@ unemp.year.w.diff <- unemp.year %>% group_by(area.fips) %>%
 # calculate monthly changes (should I multiply by 100 because the values are small?)
 unemp.year.w.diff$monthly.change <- unemp.year.w.diff$month.diff / unemp.year.w.diff$unemp
 
+write.csv(unemp.year.w.diff, "2015_unemp_by_msa.csv")
+# simple plot of change in unemployment (figure out how to insert lines for major weather events,
+# like on econ graphs showing recessions)
+plot(unemp.year.w.diff$month, unemp.year.w.diff$monthly.change)
 
 
-
-
+library(ggplot2)
+ggplot(unemp.year.w.diff, aes(month, monthly.change)) + 
+  geom_boxplot() +
+  ggtitle("Unemployment Change by Month") +
+  labs(x="Month", y= "Unemployment Change")
 
 
 ## the code below is an attempt to use the blscraper package to get the unemp data.
