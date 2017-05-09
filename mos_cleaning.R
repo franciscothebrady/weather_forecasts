@@ -4,7 +4,7 @@
 
 # install.packages("easypackages") this package allows you to load multiple packages at once
 library(easypackages)
-libraries("readr","dplyr","reshape2","data.table")
+libraries("readr","dplyr","reshape2","data.table","stringr")
 
 # set wd
 getwd()
@@ -17,70 +17,70 @@ setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts")
 ## method 2
 # readr::read_fwf did the entire thing in a few seconds
 # note that I specified both "" and "NA" as NAs, meaning the lines between stations become NAs
-mos_output <- read_fwf("mos_output.txt", fwf_widths(c(5,4,4,4,4,4,4,4,4,4,4,4,4,4,4,3,NA)), na = c("", "NA")) 
-str(mos_output)
+# options(stringsAsFactors = FALSE)
+# mos_output <- read_fwf("mos_output.txt", fwf_widths(c(5,4,4,4,4,4,4,4,4,4,4,4,4,4,4,3,NA)), na = c("", "NA"), skip = 2) 
+# str(mos_output)
+# ?read_fwf
 
 # removing all rows of just NAs
-mos_output <- mos_output[rowSums(is.na(mos_output)) != ncol(mos_output),]
+# mos_output <- mos_output[rowSums(is.na(mos_output)) != ncol(mos_output),] # may not be useful
 
 # remove empty top row
-mos_output <- mos_output[-1,]
+# mos_output <- mos_output[-1,] # solved by skip = 
 
 # function to remove whitespace around obs
-mos_output <- data.frame(lapply(mos_output, trimws))
-head(mos_output)
+# mos_output <- data.frame(lapply(mos_output, trimws))
+# head(mos_output)
+# 
+# # remove "\\|" from observations
+# mos_output <- data.frame(lapply(mos_output, function(x) {
+#   gsub("\\|", "", x)
+# }))
+# 
+# head(mos_output,15)
 
-# remove "\\|" from observations
-mos_output <- data.frame(lapply(mos_output, function(x) {
-  gsub("\\|", "", x)
-}))
-
-### pseudocode
-# for every 12 lines (station name) take that obs and paste station name into new col for the next 12 lines
-# for every 12 lines (paste runtime date from top) take that and paste runtime date into new col for the next 12 lines
-# THEN melt using station name and date as ID vars
-
-)
-
-
-#### testing out how to melt data
-
-test <- mos_output[1:100,]
-library(reshape2)
-test1 <- melt(test)
-# reshaping by certain variables (didnt work)
-test2 <- reshape(test1, idvar = "X1", timevar= "X2", direction = "wide")
-# transposing df (worked better sort of)
-test3 <- data.frame(t(test1))
-# taking the first row values and making them the colnames
-names(test3) <- as.matrix(test3[1, ])
-test3 <- test3[-1, ]
-test3[] <- lapply(test3, function(x) type.convert(as.character(x)))
-test3
-# trying to paste the dates into one column 
-adddates <- test
-adddates$runtime <- NULL
-test$X7 <- (as.character(test$X7))
-test$X8 <- (as.character(test$X8))
-test$X9 <- (as.character(test$X9))
-adddates$runtime <- paste(test$X7[1],test$X8[1],test$X9[1], sep = "")
-
-# trying to come up with a loop to grab the station names
-# which we can then use to separate the tables
-station.names <- (for i in seq(1, 100, by = 12)){
-  list(names(test3[]))
-}
-
-View(station.names)
-
-# looking not too bad!
-?paste
-
-# removing vars that don't have to do with temp, QPF12 and 24
-## might want to wait on this because it also removes forecast hour (FHR) and MOS station
+# construct a new df, taking rows and turning them into columns
+# new <- data.frame(t(mos_output$X1))
+# 
+# newdf <- as.data.frame(matrix(unlist(new, use.names=FALSE),ncol=13, byrow=TRUE))
+# 
+# # list of NA positions, could use this to set where to break rows into new columns? if divisible by 13 or something
+# na_positions <- which(is.na(new))
+# head(na_positions)
+# stations <- which(apply(new, 2, function(x) any(grepl("[P]{4}", x))))
+# 
+# new[18440]
+# stacked <- stack(mos_output)[1:100,]
+# removing vars that don't have to do with temp, QPF12 and 24 might want to wait on this 
+# because it also removes forecast hour (FHR) and MOS station
 # mos <- mos[(mos$V1 == "TMP" | mos$V1 == "Q12" | mos$V1 == "Q24"),]
 
-# changing cols to numeric
-#mos2[, c(2:16)] <- sapply(mos2[, c(2:16)], as.numeric)
-#str(mos2)
-####
+# method 3: read line by line using readLines
+mos_output <- readLines("mos_output.txt")
+mos_output <- trimws(mos_output, which = "both")
+head(mos_output)
+
+# remove | from strings
+mos_output <- gsub("\\|", " ", mos_output)
+mos_output[1:10]
+
+# extract forecast runtime dates
+dt_pattern <- "(\\d+/\\d+/\\d+)"
+runtimes <- str_match(mos_output, dt_pattern)
+runtimes[1:20]
+# remove NAs
+runtimes <- na.omit(runtimes)
+
+# extract station names
+st_pattern <-  "(^[[:upper:]]{4})"
+st_names <- str_match(mos_output, st_pattern)
+st_names <- na.omit(st_names)
+head(st_names)
+
+# extract valid forecast times
+str_ (mos_output[4])
+vf_pattern <- "FHR" # figure out how to extract the entire line 
+vf_names <- str_match(mos_output, vf_pattern)
+head(vf_names, 20)
+
+?str_extract_all
