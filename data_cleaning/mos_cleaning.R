@@ -65,7 +65,7 @@ mos_output <- gsub("\\|", " ", mos_output)
 mos_output[1:10]
 
 # extract forecast runtime dates
-dt_pattern <- "(\\d+/\\d+/\\d+)"
+dt_pattern <- "(\\d+/\\d+/\\d+\\s+\\d+)"
 runtimes <- str_match(mos_output, dt_pattern)
 runtimes[1:20]
 # remove NAs
@@ -77,18 +77,45 @@ st_names <- str_match(mos_output, st_pattern)
 st_names <- na.omit(st_names)
 head(st_names)
 
-# TEST: combining runtimes and station names as columns in df! (repeating both values n times)
-small_runtimes <- rep(runtimes[1:10], 5)
-small_stnames <- rep(st_names[1:10], 5)
-df <- data.frame(small_runtimes, small_stnames)
-df
+# # TEST: combining runtimes and station names as columns in df! (repeating both values n times)
+# small_runtimes <- rep(runtimes[1:10], 5)
+# small_stnames <- rep(st_names[1:10], 5)
+# df <- data.frame(small_runtimes, small_stnames)
+# df
+# rm(df)
 ## seems like it worked, want to double check on how its repeating (by element or cycling through)
 
 # extract valid forecast times
-vf_pattern <- "FHR  24  36  48  60  72  84  96 108 120 132 144 156 168 180 192" # theres gotta be a better way to do this
-vf_names <- str_extract(mos_output, vf_pattern)
-head(vf_names, 20)
+vf_pattern <- "FHR  24  36  48  60  72  84  96 108 120 132 144 156 168 180 192"
+# pattern attempt: "FHR\\s+\\d+9repeat 15x" we can figure out the pattern later
+vf_names <- str_match(mos_output, vf_pattern)
+head(vf_names, 40)
 vf_names <- na.omit(vf_names)
 # split into individual elements
 vf_names <- str_split(vf_names, "\\s+")
 vf_names[1:10]
+
+mos_output[1:10]
+# extract TEMP
+# pattern is some number of spaces followed by a number? 
+mos_output[6]
+val_pattern <- "\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+"
+tmp_pattern <- paste0("^TMP", val_pattern)
+tmp_values <- str_match(mos_output, tmp_pattern)
+tmp_values <- na.omit(tmp_values)
+tmp_values[1:10]
+# REMEMBER 999 = missing data (double check later)
+tmp_values <- str_split(tmp_values, "\\s+")
+
+mos_output[1:40]
+# extract qpf 12 and 24
+q12_pattern <- "Q12\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+"
+q12_values <- str_match(mos_output, q12_pattern)
+q12_values <- na.omit(q12_values)
+q12_values <- paste(q12_values, "999 999 999")
+q12_values[1:40]
+q12_values <- str_split(q12_values, "\\s+")
+
+# combine everything into  something
+
+test_combine <- as.data.frame(cbind(runtimes, st_names, vf_names, tmp_values, q12_values))
