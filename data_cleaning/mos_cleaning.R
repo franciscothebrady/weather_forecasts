@@ -65,16 +65,27 @@ mos_output <- gsub("\\|", " ", mos_output)
 mos_output[1:10]
 
 # extract forecast runtime dates
-dt_pattern <- "(\\d+/\\d+/\\d+\\s+\\d+)"
+dt_pattern <- "\\d+/\\d+/\\d+\\s+\\d+"
 runtimes <- str_match(mos_output, dt_pattern)
 runtimes[1:20]
-# remove NAs
-runtimes <- na.omit(runtimes)
+View(runtimes)
+# take a subset of runtimes to test out zoo::na.locf which is a function that takes the last obs
+# and fills it through the NAs.
+test.runtimes <- runtimes
+library(zoo)
+test.runtimes
+locf.runtimes <- na.locf(test.runtimes)
+head(locf.runtimes)
+locf.runtimes[50000:55000]
+tail(locf.runtimes)
+# # remove NAs
+# runtimes <- na.omit(runtimes)
 
 # extract station names
-st_pattern <-  "(^[[:upper:]]{4})"
+st_pattern <-  "^[[:upper:]]{4}"
 st_names <- str_match(mos_output, st_pattern)
-st_names <- na.omit(st_names)
+# st_names <- na.omit(st_names)
+View(st_names)
 head(st_names)
 
 # # TEST: combining runtimes and station names as columns in df! (repeating both values n times)
@@ -89,8 +100,9 @@ head(st_names)
 vf_pattern <- "FHR  24  36  48  60  72  84  96 108 120 132 144 156 168 180 192"
 # pattern attempt: "FHR\\s+\\d+9repeat 15x" we can figure out the pattern later
 vf_names <- str_match(mos_output, vf_pattern)
-head(vf_names, 40)
-vf_names <- na.omit(vf_names)
+View(vf_names)
+
+# vf_names <- na.omit(vf_names)
 # split into individual elements
 vf_names <- str_split(vf_names, "\\s+")
 vf_names[1:10]
@@ -118,4 +130,5 @@ q12_values <- str_split(q12_values, "\\s+")
 
 # combine everything into  something
 
-test_combine <- as.data.frame(cbind(runtimes, st_names, vf_names, tmp_values, q12_values))
+# test_combine <- as.data.frame(cbind(runtimes, st_names, vf_names, tmp_values, q12_values))
+# above isnt going to work because they're all different lengths. 
