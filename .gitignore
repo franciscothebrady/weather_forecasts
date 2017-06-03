@@ -2,5 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+data/
 mos_data/
 weather_forecasts.Rproj
