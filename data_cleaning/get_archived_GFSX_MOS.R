@@ -25,10 +25,10 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   
   # check if raw archived MOS file is already on local disk
   mos_file <- paste0("mex", runtime_year, runtime_month, ".t", runtime_hour, ".gz")
-  local_mos_file <- paste0("mos_data/", mos_file)
+  local_mos_file <- paste0("data/", mos_file)
   if (!file.exists(local_mos_file)) {  # if file does not exist get it!
     # create directory to save downloaded file
-    dir.create("mos_data", showWarnings = FALSE)
+    dir.create("data", showWarnings = FALSE)
     # get raw archived MOS file
     base_url <- "http://www.mdl.nws.noaa.gov/~mos/archives/mrfmex/"
     download_url <- paste0(base_url, mos_file)
