@@ -33,3 +33,10 @@ df1 <- df1[,c(-1,-2,-4)]
 
 # data frame of mos output
 df1
+
+# TODO:
+#   * add column filled with station id
+#   * add column filled with runtime
+#   * change FHR to actual time/date from runtime. E.g., if runtime is 2015/01/01 00Z, then
+#     FHR 36 should be 2015/01/02 12Z
+#   * fill blanks with NAs
