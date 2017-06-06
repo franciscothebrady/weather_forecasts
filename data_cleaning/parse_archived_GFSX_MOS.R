@@ -9,13 +9,14 @@ rm(list = ls())
 library(plyr)
 library(dplyr)
 library(tidyr)
+# install.packages("stringr")
 library(stringr)
-
+library(readr)
 # load function
-source("data_cleaning/get_archived_GFSX_MOS.R")
+source("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts/Script/get_archived_GFSX_MOS.R")
 
-station_id <- "KDEN"
-runtime_dt <- "20151210"
+station_id <- "KDCA"
+runtime_dt <- "20151223"
 runtime_hr <- "00Z"
 
 mos_output <- get_archived_GFSX_MOS(station_id, runtime_dt, runtime_hr)
@@ -51,4 +52,29 @@ mos_df1
 # TODO:
 #   * change FHR to actual time/date from runtime. E.g., if runtime is 2015/01/01 00Z, then
 #     FHR 36 should be 2015/01/02 12Z
+# 1. create date col from RTDT
+library(lubridate)
+# remove Zs, but remember we're still in UTC
+
+###########
+###########
+mos_df1$RTHR <- gsub(".$", "",mos_df1$RTHR) 
+
+# turn fhr into column
+mos_df1$FHR <- rownames(mos_df1)
+
+# use fhr and add to runtime date to get the date for which the forecast is valid
+mos_df1$FHR <- ymd_hms(paste(mos_df1$RTDT, "00:00:00"), tz="UTC") + hours(mos_df1$FHR)
+mos_df1
+
 #   * fill blanks with NAs
+for (i in 4:6){
+  mos_df1[,i] <- as.numeric(mos_df1[,i])
+}
+for (i in 8:17){
+  mos_df1[,i] <- as.numeric(mos_df1[,i])
+}
+mos_df1[,19] <- as.numeric(mos_df1[,19])
+
+mos_df1
+
