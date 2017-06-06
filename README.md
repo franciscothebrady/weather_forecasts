@@ -7,6 +7,3 @@ There are several components to this repo:
 3. scripts for analysis of data
 
 This is part of an ongoing project looking at the (potential) economic impacts of weather forecast accuracy around severe weather events.
-
-small change.
-
