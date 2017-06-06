@@ -4,6 +4,8 @@
 #                                           -Brian
 #
 
+rm(list = ls())
+
 library(plyr)
 library(dplyr)
 library(tidyr)
@@ -12,30 +14,41 @@ library(stringr)
 # load function
 source("data_cleaning/get_archived_GFSX_MOS.R")
 
-mos_output <- get_archived_GFSX_MOS("KDEN", "20151210", "00Z")
+station_id <- "KDEN"
+runtime_dt <- "20151210"
+runtime_hr <- "00Z"
+
+mos_output <- get_archived_GFSX_MOS(station_id, runtime_dt, runtime_hr)
 mos_output
 
-# replace pipe character in mos_output
-x <- str_replace_all(mos_output, "\\|", " ")
-x
+# set start and end vectors (NOTE: we are ignoring CLIMO columns)
+start <- seq(1, 32) + rep(seq(0, 30, 2), each = 2)
+end   <- seq(1, 32) + c(0, rep(seq(2, 30, 2), each = 2), 32)
+# parse each string in mos_output
+x1 <- lapply(mos_output[c(2, 4:length(mos_output))], function(s){ str_sub(s, start = start, end = end) })
+# drop unwanted elements
+y1 <- lapply(x1, function(s){ s[seq(2, 32, 2)] })
+# convert list to data frame
+z1 <- ldply(y1)
+# assign data frame column names (forecast hours)
+colnames(z1) <- y1[[1]]
+# assign data frame row names (forecast elements)
+rownames(z1) <- z1[,1]
+# remove first column and row that contains column and row names
+mos_df <- z1[-1,-1]
+# final version of data frame we can use to do stuff
+mos_df
 
-df1 <- data.frame(c(1:17))  # dummy data frame
-# parse each character vector, use fix width = 4 characters
-for (i in 1:19) {
-  df1 <- cbind(df1, data.frame(str_match_all(x[i], ".{4}"), stringsAsFactors = FALSE))
-}
-# name data frame columns
-names(df1) <- df1[1,]
-# remove row containing names
-df1 <- df1[-1,]
-# remove columns ( -1: dummy, -2: title, -4: days)
-df1 <- df1[,c(-1,-2,-4)]
+# transpose data frame
+mos_df1 <- data.frame(t(mos_df), stringsAsFactors = FALSE)
+# append runtime
+mos_df1 <- cbind(RTDT=rep(runtime_dt, 15), RTHR=rep(runtime_hr, 15), mos_df1)
+# append station id
+mos_df1 <- cbind(ICAO=rep(station_id, 15), mos_df1)
 
-# data frame of mos output
-df1
+mos_df1
 
 # TODO:
-#   * add column filled with station id
 #   * add column filled with runtime
 #   * change FHR to actual time/date from runtime. E.g., if runtime is 2015/01/01 00Z, then
 #     FHR 36 should be 2015/01/02 12Z
