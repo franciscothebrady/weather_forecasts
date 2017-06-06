@@ -50,5 +50,5 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
     str_which(mos_outputs[block_start:length(mos_outputs)], "\\s{70}")[1] - 2
   
   # return user selected MOS output
-  mos_outputs[block_start:block_end]
+  return(mos_outputs[block_start:block_end])
 }
