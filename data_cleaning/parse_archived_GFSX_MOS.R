@@ -49,7 +49,6 @@ mos_df1 <- cbind(ICAO=rep(station_id, 15), mos_df1)
 mos_df1
 
 # TODO:
-#   * add column filled with runtime
 #   * change FHR to actual time/date from runtime. E.g., if runtime is 2015/01/01 00Z, then
 #     FHR 36 should be 2015/01/02 12Z
 #   * fill blanks with NAs
