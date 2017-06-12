@@ -45,7 +45,7 @@ beakey <- "AF498701-0543-490E-B9B3-B850D6166872"
 beaSpecs <- list(
   "UserID" = beakey,
   "method" = "GetData",
-  "datasetname" = "RegionalProduct", # need to change and check over syntax
+  "datasetname" = "RegionalProduct",
   "Component" = "RGDP_MAN",
   "IndustryId" = "1",
   "GeoFIPS" = "MSA",
@@ -92,7 +92,7 @@ rm(cbsa_info)
 # https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz
 # as storm_events_2015.csv. Filtered out episodes with missing damage reports.
 # Filtered out events outside CONUS, HI, and AK.
-storm_events <- read.csv("storm_events_2015.csv", stringsAsFactors = FALSE)
+storm_events <- read.csv(paste0(home_dir, "/data/storm_events_2015.csv"), stringsAsFactors = FALSE)
 
 # Tidy storm_events data frame
 
