@@ -8,7 +8,7 @@
 ## Edit history:
 ## 2017-02-24, initial version [bs, Brian Seok]
 ## 2017-03-24, minor edits, gdp lags, [fb, francisco brady]
-##
+## 2017-06-08, edits to storm event read-in [fb]
 
 
 #-- set working directory
@@ -17,7 +17,7 @@ setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts")
 
 #-- load required packages
 library(checkpoint)
-checkpoint("2017-03-24")
+# checkpoint("2017-03-24")
 library(stringr)
 library(dtplyr)   # dplyr and data.table combined
 library(geosphere)
@@ -43,10 +43,12 @@ beakey <- "AF498701-0543-490E-B9B3-B850D6166872"
 #-- (https://www.bea.gov/API/bea_web_service_api_user_guide.htm)
 beaSpecs <- list(
   "UserID" = beakey,
-  "Method" = "GetData",
-  "datasetname" = "RegionalData", # need to change and check over syntax
-  "KeyCode" = "RGDP_MP",
+  "method" = "GetData",
+  "datasetname" = "RegionalProduct", 
+  "Component" = "RGDP_MAN",
+  "IndustryId" = "1",
   "Year" = "2015",
+  "GeoFips" = "MSA",
   "ResultFormat" = "json"
 )
 gdp_msa <- beaGet(beaSpecs, asWide = FALSE)
@@ -85,11 +87,20 @@ rm(cbsa_info)
 #-- get severe weather data with damage reports from NOAA
 #-- (https://www.ncdc.noaa.gov/swdi/#Intro)
 
-# Modified
+# take storm events data for 2015
 # https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz
-# as storm_events_2015.csv. Filtered out episodes with missing damage reports.
-# Filtered out events outside CONUS, HI, and AK.
+storm_events <- as.data.frame(read.csv("data/StormEvents_details-ftp_v1.0_d2015_c20160921.csv.gz", stringsAsFactors = FALSE))
+
+# filter out events outside CONUS, HI, and AK.
+storm_events <- dplyr::filter(storm_events, STATE_FIPS < 57 & STATE_FIPS > 0)
+
+# filter out episodes with missing damage reports
+storm_events <- dplyr::filter(storm_events, !(DAMAGE_PROPERTY == "") & !(DAMAGE_CROPS == ""))
+
+# write to csv then read in again as below
+write.csv(storm_events, "storm_events_2015.csv")
 storm_events <- read.csv("storm_events_2015.csv", stringsAsFactors = FALSE)
+
 
 # Tidy storm_events data frame
 
@@ -131,12 +142,28 @@ storm_events$DAMAGE_VALUE.unit <- rep("USD", length(storm_events$DAMAGE_VALUE))
 rm(damage_magnitude, damage_numeric, damage_value)
 
 # Rearrange columns
-storm_events <- storm_events[, c(26,24,27,25, 8:11, 15:17, 18:21, 28:30)]  # rearrange columns
-colnames(storm_events) <- c("EVENTS.begin_date","EVENTS.begin_time_UTC", "EVENTS.end_date", "EVENTS.end_time_UTC",
-                            "EVENTS.ID","EVENTS.state","EVENTS.type","EVENTS.WFO",
-                            "EVENTS.flood_cause","EVENTS.hurricane_category","EVENTS.tornado_F_scale",
-                            "EVENTS.begin_lat","EVENTS.begin_lon","EVENTS.end_lat","EVENTS.end_lon",
-                            "EVENTS.damage_value","EVENTS.damage_magnitude","EVENTS.damage_unit")
+names(storm_events)
+# storm_events <- storm_events[, c(26,24,27,25, 8:11, 15:17, 18:21, 28:30)]  # rearrange columns # old order
+storm_events <- storm_events[, c(52,54,53,55, 8:10, 13, 17, 30:32, 45:48, 58:60)]
+colnames(storm_events) <- c("EVENTS.begin_date", # 52
+                            "EVENTS.begin_time_UTC", # 54
+                            "EVENTS.end_date", # 53
+                            "EVENTS.end_time_UTC", # 55
+                            "EVENTS.ID", # 8
+                            "EVENTS.state", # 9
+                            "EVENTS.fips", # 10
+                            "EVENTS.type", # 13
+                            "EVENTS.WFO", # 17
+                            "EVENTS.flood_cause", # 30
+                            "EVENTS.hurricane_category", # 31
+                            "EVENTS.tornado_F_scale", # 32
+                            "EVENTS.begin_lat", # 45
+                            "EVENTS.begin_lon", # 46
+                            "EVENTS.end_lat", # 47
+                            "EVENTS.end_lon", # 48
+                            "EVENTS.damage_value", # 58
+                            "EVENTS.damage_magnitude", # 59
+                            "EVENTS.damage_unit") # 60
 
 # Convert date to Date format
 storm_events$EVENTS.begin_date <- as.Date(as.character(storm_events$EVENTS.begin_date), "%Y%m%d")
