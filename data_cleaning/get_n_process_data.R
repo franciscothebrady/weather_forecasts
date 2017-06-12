@@ -13,7 +13,6 @@
 
 #-- set working directory
 setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts")
-home_dir <- getwd()
 
 
 #-- load required packages
@@ -64,7 +63,7 @@ rm(beaSpecs)
 # Modified and coverted
 # https://www.census.gov/population/metro/files/CBSA%20Report%20Chapter%203%20Data.xls
 # to csv as cbsa_info_2010.csv.
-cbsa_info <- read.csv(paste0(home_dir, "/data/cbsa_info_2010.csv"), stringsAsFactors = FALSE)
+cbsa_info <- read.csv("data/cbsa_info_2010.csv", stringsAsFactors = FALSE)
 
 
 #-- add CBSA codes to corresponding city/state in gdp_msa
@@ -92,7 +91,7 @@ rm(cbsa_info)
 # https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz
 # as storm_events_2015.csv. Filtered out episodes with missing damage reports.
 # Filtered out events outside CONUS, HI, and AK.
-storm_events <- read.csv(paste0(home_dir, "/data/storm_events_2015.csv"), stringsAsFactors = FALSE)
+storm_events <- read.csv("data/storm_events_2015.csv", stringsAsFactors = FALSE)
 
 # Tidy storm_events data frame
 
@@ -176,7 +175,7 @@ storm_events <- merge(storm_events, met_stations, by = "EVENTS.ID")
 # We could have used rnoaa::isd_stations() function, but there are fewer MOS stations
 # than ISD stations, so when we pull archived MOS data, it will return errors for
 # ISD stations that does not have MOS data.
-mos_stations <- read.csv("mos_stations.csv", stringsAsFactors = FALSE)
+mos_stations <- read.csv("data/mos_stations.csv", stringsAsFactors = FALSE)
 
 
 #-- find nearest MOS station to event and merge in storm_events
