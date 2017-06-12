@@ -44,11 +44,11 @@ beakey <- "AF498701-0543-490E-B9B3-B850D6166872"
 beaSpecs <- list(
   "UserID" = beakey,
   "method" = "GetData",
-  "datasetname" = "RegionalProduct", 
+  "datasetname" = "RegionalProduct",
   "Component" = "RGDP_MAN",
   "IndustryId" = "1",
+  "GeoFIPS" = "MSA",
   "Year" = "2015",
-  "GeoFips" = "MSA",
   "ResultFormat" = "json"
 )
 gdp_msa <- beaGet(beaSpecs, asWide = FALSE)
@@ -63,7 +63,7 @@ rm(beaSpecs)
 # Modified and coverted
 # https://www.census.gov/population/metro/files/CBSA%20Report%20Chapter%203%20Data.xls
 # to csv as cbsa_info_2010.csv.
-cbsa_info <- read.csv("cbsa_info_2010.csv", stringsAsFactors = FALSE)
+cbsa_info <- read.csv("data/cbsa_info_2010.csv", stringsAsFactors = FALSE)
 
 
 #-- add CBSA codes to corresponding city/state in gdp_msa
@@ -89,6 +89,7 @@ rm(cbsa_info)
 
 # take storm events data for 2015
 # https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz
+
 storm_events <- as.data.frame(read.csv("data/StormEvents_details-ftp_v1.0_d2015_c20160921.csv.gz", stringsAsFactors = FALSE))
 
 # filter out events outside CONUS, HI, and AK.
@@ -200,7 +201,7 @@ storm_events <- merge(storm_events, met_stations, by = "EVENTS.ID")
 # We could have used rnoaa::isd_stations() function, but there are fewer MOS stations
 # than ISD stations, so when we pull archived MOS data, it will return errors for
 # ISD stations that does not have MOS data.
-mos_stations <- read.csv("mos_stations.csv", stringsAsFactors = FALSE)
+mos_stations <- read.csv("data/mos_stations.csv", stringsAsFactors = FALSE)
 
 
 #-- find nearest MOS station to event and merge in storm_events
