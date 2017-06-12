@@ -13,6 +13,7 @@
 
 #-- set working directory
 setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts")
+home_dir <- getwd()
 
 
 #-- load required packages
@@ -43,9 +44,11 @@ beakey <- "AF498701-0543-490E-B9B3-B850D6166872"
 #-- (https://www.bea.gov/API/bea_web_service_api_user_guide.htm)
 beaSpecs <- list(
   "UserID" = beakey,
-  "Method" = "GetData",
-  "datasetname" = "RegionalData", # need to change and check over syntax
-  "KeyCode" = "RGDP_MP",
+  "method" = "GetData",
+  "datasetname" = "RegionalProduct", # need to change and check over syntax
+  "Component" = "RGDP_MAN",
+  "IndustryId" = "1",
+  "GeoFIPS" = "MSA",
   "Year" = "2015",
   "ResultFormat" = "json"
 )
@@ -61,7 +64,7 @@ rm(beaSpecs)
 # Modified and coverted
 # https://www.census.gov/population/metro/files/CBSA%20Report%20Chapter%203%20Data.xls
 # to csv as cbsa_info_2010.csv.
-cbsa_info <- read.csv("cbsa_info_2010.csv", stringsAsFactors = FALSE)
+cbsa_info <- read.csv(paste0(home_dir, "/data/cbsa_info_2010.csv"), stringsAsFactors = FALSE)
 
 
 #-- add CBSA codes to corresponding city/state in gdp_msa
