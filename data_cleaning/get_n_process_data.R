@@ -252,6 +252,7 @@ temp_ls <- lapply(1:length(storm_events_precip$EVENTS.ID),
     stringsAsFactors = FALSE))
 rm(temp_ls)
 
+?ghcnd_search
 # Hack job. Not sure why I can't just use dplyr::bind_rows()
 #station_obs <- dplyr::bind_rows(temp_ls)
 station_obs <- data.frame(prcp.id = character(),
@@ -306,11 +307,12 @@ storm_events_precip <- merge(storm_events_precip, station_obs,
                              by.y = c("prcp.id", "prcp.date"))
 names(storm_events_precip)[30] <- "GHCND.prcp_cat"
 
-write.csv(storm_events, "storm_events_2015.csv")
+write.csv(storm_events, "storm_events_with_obs_2015.csv")
 
-select(ICAO.names, date, )
+## NEXT STEPS
+## create new df with dates, station name
 
-## USE parse_archived_GFSX_MOS.R instead! 
+## USE get_archived_GFSX_MOS.R instead! 
 # #-- get archived forecast (MOS) from IA State MESONET
 # #-- only short-range available
 # 
@@ -330,7 +332,7 @@ select(ICAO.names, date, )
 #                      col.names = as.vector(mos_header))
 #   mos_df$EMPRY <- NULL  # remove "missing" column
 #   mos_gfs <- dplyr::filter(mos_df, model == "GFS",
-#                      runtime == paste(obs_date - 1, "00:00:00+00") |
+#                      runtime == paste(obs_date - 1, "00:00:300+00") |
 #                        runtime == paste(obs_date - 1, "12:00:00+00") |
 #                        runtime == paste(obs_date - 3, "00:00:00+00") |
 #                        runtime == paste(obs_date - 3, "12:00:00+00"),
