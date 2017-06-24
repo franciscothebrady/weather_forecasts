@@ -2,5 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
-data/
+data/*.gz
 weather_forecasts.Rproj
