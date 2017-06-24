@@ -16,8 +16,18 @@ setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts")
 
 
 #-- load required packages
+# install.packages("checkpoint")
+# install.packages("stringr")
+# install.packages("dtplyr")
+# install.packages("geosphere")
+# install.packages("weathermetrics")
+# install.packages("bea.R")
+# install.packages("rnoaa")
+# install.packages("foreach")
+# install.packages("glue")
+# install.packages("purr")
 library(checkpoint)
-# checkpoint("2017-03-24")
+#checkpoint("2017-03-24")
 library(stringr)
 library(dtplyr)   # dplyr and data.table combined
 library(geosphere)
@@ -54,7 +64,6 @@ beaSpecs <- list(
 gdp_msa <- beaGet(beaSpecs, asWide = FALSE)
 rm(beaSpecs)
 
-
 #-- get CBSA code, area, and pop. den. directly from Census.gov
 #-- (https://www.census.gov/programs-surveys/popest.html)
 #-- (https://www.census.gov/population/metro/data/pop_data.html)
@@ -63,8 +72,7 @@ rm(beaSpecs)
 # Modified and coverted
 # https://www.census.gov/population/metro/files/CBSA%20Report%20Chapter%203%20Data.xls
 # to csv as cbsa_info_2010.csv.
-cbsa_info <- read.csv("data/cbsa_info_2010.csv", stringsAsFactors = FALSE)
-
+cbsa_info <- read.csv("~/weather_forecasts/data/cbsa_info_2010.csv", stringsAsFactors = FALSE)
 
 #-- add CBSA codes to corresponding city/state in gdp_msa
 
@@ -77,8 +85,13 @@ gdp_msa <- merge(gdp_msa, cbsa_info, by.x = "GeoName", by.y = "CBSA.title")
 
 # Tidy gdp_msa
 gdp_msa <- gdp_msa[, c(4,8,1,11,7,6,5)]  # rearrange columns
-colnames(gdp_msa) <- c("YEAR","CBSA.code","CBSA.title","CBSA.pop_density",
-                       "MSA.GDP","MSA.GPD.magnitude","MSA.GPD.unit")
+colnames(gdp_msa) <- c("YEAR", # 4
+                       "CBSA.code", # 8
+                       "CBSA.title", # 1
+                       "CBSA.pop_density", # 11
+                       "MSA.GDP", # 7
+                       "MSA.GPD.magnitude", # 6
+                       "MSA.GPD.unit") # 5
 
 # We no longer need msa_code_list so remove it from workspace to save RAM.
 rm(cbsa_info)
@@ -188,6 +201,7 @@ met_stations <- meteo_nearby_stations(lat_lon_df = temp_df,
                                       year_min = 2015, year_max = 2015)
 met_stations <- plyr::rbind.fill(met_stations)  # convert list of data frames into data frame
 met_stations$EVENTS.ID <- temp_df$id  # add EVENTS.ID for merging with storm_events
+
 colnames(met_stations) <- c("GHCND.ID","GHCND.name","GHCND.lat","GHCND.lon","GHCND.dist_from_event.km","EVENTS.ID")
 rm(temp_df)
 
@@ -252,6 +266,7 @@ temp_ls <- lapply(1:length(storm_events_precip$EVENTS.ID),
     stringsAsFactors = FALSE))
 rm(temp_ls)
 
+?ghcnd_search
 # Hack job. Not sure why I can't just use dplyr::bind_rows()
 #station_obs <- dplyr::bind_rows(temp_ls)
 station_obs <- data.frame(prcp.id = character(),
@@ -306,11 +321,12 @@ storm_events_precip <- merge(storm_events_precip, station_obs,
                              by.y = c("prcp.id", "prcp.date"))
 names(storm_events_precip)[30] <- "GHCND.prcp_cat"
 
-write.csv(storm_events, "storm_events_2015.csv")
+write.csv(storm_events, "storm_events_with_obs_2015.csv")
 
-select(ICAO.names, date, )
+## NEXT STEPS
+## create new df with dates, station name
 
-## USE parse_archived_GFSX_MOS.R instead! 
+## USE get_archived_GFSX_MOS.R instead! 
 # #-- get archived forecast (MOS) from IA State MESONET
 # #-- only short-range available
 # 
@@ -330,7 +346,7 @@ select(ICAO.names, date, )
 #                      col.names = as.vector(mos_header))
 #   mos_df$EMPRY <- NULL  # remove "missing" column
 #   mos_gfs <- dplyr::filter(mos_df, model == "GFS",
-#                      runtime == paste(obs_date - 1, "00:00:00+00") |
+#                      runtime == paste(obs_date - 1, "00:00:300+00") |
 #                        runtime == paste(obs_date - 1, "12:00:00+00") |
 #                        runtime == paste(obs_date - 3, "00:00:00+00") |
 #                        runtime == paste(obs_date - 3, "12:00:00+00"),
