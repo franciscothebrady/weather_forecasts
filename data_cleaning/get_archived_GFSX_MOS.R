@@ -10,12 +10,13 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   #     ui_runtime_hour  : "00Z" or "12Z"
   #
   # output:
-  #     data frame of MOS output
+  #     data frame of MOS output (excluding CLIMO data)
   #
 
   require(plyr)
   require(stringr)
   require(readr)
+  require(lubridate)
   
   # parse input parameters
   station_id    <- str_to_upper(ui_station_id)
@@ -51,14 +52,14 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
     str_which(mos_outputs[block_start:length(mos_outputs)], "\\s{70}")[1] - 2
   
   # user selected MOS output
-  output <- mos_outputs[block_start:block_end]
+  mos_chr <- mos_outputs[block_start:block_end]
   
   # set start and end vectors (NOTE: we are ignoring CLIMO columns)
   start <- seq(1, 32) + rep(seq(0, 30, 2), each = 2)
   end   <- seq(1, 32) + c(0, rep(seq(2, 30, 2), each = 2), 32)
   
-  # parse each string in mos_output
-  x1 <- lapply(output[c(2, 4:length(output))], function(s){ str_sub(s, start = start, end = end) })
+  # parse each string in mos_chr
+  x1 <- lapply(mos_chr[c(2, 4:length(mos_chr))], function(s){ str_sub(s, start = start, end = end) })
   
   # drop unwanted elements
   y1 <- lapply(x1, function(s){ s[seq(2, 32, 2)] })
@@ -75,7 +76,28 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   # remove first column and row that contains column and row names
   mos_df <- z1[-1,-1]
   
+  # transpose data frame
+  mos_df <- data.frame(t(mos_df), stringsAsFactors = FALSE)
+  row.names(mos_df) <- NULL
+  
+  # append forecast times in hr
+  fc_t <- data.frame(colnames(z1), stringsAsFactors = FALSE)
+  fc_t <- as.numeric(fc_t[-1,])
+  mos_df <- cbind.data.frame(FCDT=fc_t, mos_df)
+    
+  # append runtime in ymd_hms format
+  rt_t1 <- rep(runtime_dt, 15)
+  rt_t2 <- rep(runtime_hr, 15)
+  rt_t2 <- gsub(".$", "", rt_t2)  # remove Zs, but remember we're still in UTC/Zulu
+  rt_t3 <- ymd_hms(paste(rt_t1, paste0(rt_t2, ":00:00")), tz="Zulu")
+  mos_df <- cbind.data.frame(RTDT=rt_t3, mos_df)
+  
+  # convert forecast times to ymd_hms format
+  mos_df$FCDT <- mos_df$RTDT + hours(mos_df$FCDT)
+  
+  # append station id
+  mos_df <- cbind.data.frame(ICAO=rep(station_id, 15), mos_df, stringsAsFactors = FALSE)
+  
   # final version of data frame we can use to do stuff
   return(mos_df)
-
 }
