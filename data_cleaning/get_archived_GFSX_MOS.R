@@ -10,9 +10,10 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   #     ui_runtime_hour  : "00Z" or "12Z"
   #
   # output:
-  #     character vector of MOS output
+  #     data frame of MOS output
   #
-    
+
+  require(plyr)
   require(stringr)
   require(readr)
   
@@ -49,6 +50,32 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   block_end   <- block_start +
     str_which(mos_outputs[block_start:length(mos_outputs)], "\\s{70}")[1] - 2
   
-  # return user selected MOS output
-  return(mos_outputs[block_start:block_end])
+  # user selected MOS output
+  output <- mos_outputs[block_start:block_end]
+  
+  # set start and end vectors (NOTE: we are ignoring CLIMO columns)
+  start <- seq(1, 32) + rep(seq(0, 30, 2), each = 2)
+  end   <- seq(1, 32) + c(0, rep(seq(2, 30, 2), each = 2), 32)
+  
+  # parse each string in mos_output
+  x1 <- lapply(output[c(2, 4:length(output))], function(s){ str_sub(s, start = start, end = end) })
+  
+  # drop unwanted elements
+  y1 <- lapply(x1, function(s){ s[seq(2, 32, 2)] })
+  
+  # convert list to data frame
+  z1 <- ldply(y1)
+  
+  # assign data frame column names (forecast hours)
+  colnames(z1) <- y1[[1]]
+  
+  # assign data frame row names (forecast elements)
+  rownames(z1) <- z1[,1]
+  
+  # remove first column and row that contains column and row names
+  mos_df <- z1[-1,-1]
+  
+  # final version of data frame we can use to do stuff
+  return(mos_df)
+
 }
