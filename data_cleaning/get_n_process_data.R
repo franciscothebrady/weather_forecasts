@@ -3,47 +3,35 @@
 ##   Evaluating Economic Benefits of Short-Range (6-84 hours)
 ##   and Extended Forecasts (12-192 hours)
 ##
-## NOTICE: Current draft, only evaluating short-range forecasts (24 hrs vs 72 hrs)
+## NOTICE: Current draft evaluates extended forecast (24 hrs vs 192 hrs)
 ##
 ## Edit history:
 ## 2017-02-24, initial version [bs, Brian Seok]
 ## 2017-03-24, minor edits, gdp lags, [fb, francisco brady]
 ## 2017-06-08, edits to storm event read-in [fb]
+## 2017-06-24, cleaned up code, use get_archived_GFSX_MOS function
+##             to pull extended MOS forecast [bs]
+##
 
 
 #-- set working directory
-setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts")
+#setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts")
 
 
 #-- load required packages
-# install.packages("checkpoint")
-# install.packages("stringr")
-# install.packages("dtplyr")
-# install.packages("geosphere")
-# install.packages("weathermetrics")
-# install.packages("bea.R")
-# install.packages("rnoaa")
-# install.packages("foreach")
-# install.packages("glue")
-# install.packages("purr")
 library(checkpoint)
 #checkpoint("2017-03-24")
+library(plyr)
+library(dtplyr)
 library(stringr)
-library(dtplyr)   # dplyr and data.table combined
-library(geosphere)
-library(weathermetrics)
 library(rnoaa)
 library(bea.R)
-library(foreach)
-#library(doParallel)
+
+library(geosphere)
+library(weathermetrics)
 
 
-#-- set up cluster for parallel processing
-#cl <- makeCluster(2)
-#registerDoParallel(cl)
-
-
-#-- API keys
+#-- API keys (fb's API keys)
 # Putting this here is very bad practice!
 noaakey <- "LHfBxDvUCXUreWbNRDPCGEjYfaBLfLGh"
 beakey <- "AF498701-0543-490E-B9B3-B850D6166872"
@@ -64,6 +52,7 @@ beaSpecs <- list(
 gdp_msa <- beaGet(beaSpecs, asWide = FALSE)
 rm(beaSpecs)
 
+
 #-- get CBSA code, area, and pop. den. directly from Census.gov
 #-- (https://www.census.gov/programs-surveys/popest.html)
 #-- (https://www.census.gov/population/metro/data/pop_data.html)
@@ -72,7 +61,7 @@ rm(beaSpecs)
 # Modified and coverted
 # https://www.census.gov/population/metro/files/CBSA%20Report%20Chapter%203%20Data.xls
 # to csv as cbsa_info_2010.csv.
-cbsa_info <- read.csv("~/weather_forecasts/data/cbsa_info_2010.csv", stringsAsFactors = FALSE)
+cbsa_info <- read.csv("data/cbsa_info_2010.csv", stringsAsFactors = FALSE)
 
 #-- add CBSA codes to corresponding city/state in gdp_msa
 
@@ -81,13 +70,14 @@ gdp_msa$GeoName <- gsub(" (Metropolitan Statistical Area)", "", gdp_msa$GeoName,
 
 # Find correct MSA code for corresponding GeoName by matching msa_code_list$CBSA.Title
 # with gdp_msa$GeoName and merge result into gdp_msa
-gdp_msa <- merge(gdp_msa, cbsa_info, by.x = "GeoName", by.y = "CBSA.title")
+gdp_msa$GeoFips <- as.numeric(gdp_msa$GeoFips)
+gdp_msa <- merge(gdp_msa, cbsa_info, by.x = "GeoFips", by.y = "CBSA.code")
 
 # Tidy gdp_msa
-gdp_msa <- gdp_msa[, c(4,8,1,11,7,6,5)]  # rearrange columns
+gdp_msa <- gdp_msa[, c(4,1,3,11,7,6,5)]  # rearrange columns
 colnames(gdp_msa) <- c("YEAR", # 4
-                       "CBSA.code", # 8
-                       "CBSA.title", # 1
+                       "CBSA.code", # 1
+                       "CBSA.title", # 3
                        "CBSA.pop_density", # 11
                        "MSA.GDP", # 7
                        "MSA.GPD.magnitude", # 6
@@ -102,19 +92,13 @@ rm(cbsa_info)
 
 # take storm events data for 2015
 # https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz
-
-storm_events <- as.data.frame(read.csv("data/StormEvents_details-ftp_v1.0_d2015_c20160921.csv.gz", stringsAsFactors = FALSE))
+storm_events <- as.data.frame(read.csv("data/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz", stringsAsFactors = FALSE))
 
 # filter out events outside CONUS, HI, and AK.
 storm_events <- dplyr::filter(storm_events, STATE_FIPS < 57 & STATE_FIPS > 0)
 
 # filter out episodes with missing damage reports
 storm_events <- dplyr::filter(storm_events, !(DAMAGE_PROPERTY == "") & !(DAMAGE_CROPS == ""))
-
-# write to csv then read in again as below
-write.csv(storm_events, "storm_events_2015.csv")
-storm_events <- read.csv("storm_events_2015.csv", stringsAsFactors = FALSE)
-
 
 # Tidy storm_events data frame
 
