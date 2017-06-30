@@ -25,7 +25,7 @@ Sys.setlocale('LC_ALL', 'C')
 sf_cbsa <- "tl_2010_us_cbsa10.shp"
 cbsa_map <- readOGR(sf_cbsa, layer = "tl_2010_us_cbsa10")
 sf_state <- "tl_2010_us_state10.shp"
-state_map <- readORG(sf_state, layer = "tl_2010_us_state10")
+state_map <- readOGR(sf_state, layer = "tl_2010_us_state10")
 
 # remove CBSAs, etc. of Alaska, Hawaii, and Puerto Rico
 cbsa_map <- cbsa_map[!grepl("AK$|HI$|PR$", cbsa_map$NAME10), ]
