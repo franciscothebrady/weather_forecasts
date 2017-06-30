@@ -30,7 +30,7 @@ state_map <- readOGR(sf_state, layer = "tl_2010_us_state10")
 # remove CBSAs, etc. of Alaska, Hawaii, and Puerto Rico
 cbsa_map <- cbsa_map[!grepl("AK$|HI$|PR$", cbsa_map$NAME10), ]
 length(cbsa_map)   # result should be 933 after remove those three areas
-state_map <- state_map[!grepl("AK$|HI$|PR$", state_map$NAME10), ]
+state_map <- state_map[!grepl("Alaska|Hawaii|Puerto", state_map$NAME10), ]
 length(state_map)  # result should be 49 after removing those three areas
 
 # make data ggplot friendly
