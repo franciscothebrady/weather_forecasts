@@ -348,5 +348,60 @@ write.csv(storm_events, "storm_events_with_obs_2015.csv")
 # storm_events_precip <- cbind(storm_events_precip, mos_gfs_q12)
 
 
+
+
+# using the FCC API to match lat/lon to census tracts
+# census block conversion API docs here: https://www.fcc.gov/general/census-block-conversions-api
+
+# install.packages("easypackages") this package allows you to load multiple packages at once
+library(easypackages)
+libraries("httr","jsonlite","dplyr")
+
+options(stringsAsFactors = FALSE)
+
+## replace the below with the actual storm_events df
+# # i'm not using the actual data here. replace with actual lat/lons later!
+# storm_events <- read.csv(paste0(dirname(getwd()), "/storm_events_2015.csv"))
+# storms <- filter(storms, BEGIN_LAT != "NA")
+# storms <- head(storms, 100)
+
+# following this as an example: http://tophcito.blogspot.com/2015/11/accessing-apis-from-r-and-little-r.html#fn2
+# set up the url and parameters
+
+url <- "http://data.fcc.gov/api/block/find?format=json"
+
+
+latitude <- storms$BEGIN_LAT # replace
+
+longitude <- storms$BEGIN_LON # replace
+request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false")
+
+str(request)
+# use the names of the lists as the names for the df to make
+
+tracts <- data.frame(FIPS = rep(0, 100),
+                     County.FIPS = rep(0, 100),
+                     County.name = rep(0, 100),
+                     State.FIPS = rep(0, 100),
+                     State.code = rep(0, 100),
+                     State.name = rep(0, 100),
+                     status     = rep(0, 100),
+                     executionTime = rep(0, 100))
+
+
+#  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
+for (i in 1:100) {
+  latitude <- storms$BEGIN_LAT[i]  # replace
+  longitude <- storms$BEGIN_LON[i]  # replace 
+  request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
+  tracts[i,] <- as.data.frame.list(request)
+}
+
+## next steps:
+## merge into storm_events df
+## access census data for median income at the census block level
+## create weight for impact? 
+
+
 #-- shutdown all clusters
 #stopCluster(cl)
