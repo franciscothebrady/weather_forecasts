@@ -75,18 +75,20 @@ storm_events$STATE.ABB <- abb2state(storm_events$STATE, convert = T)
 # do the same to add state names to CBSA df
 cbsa$State.full <- abb2state(cbsa$State.name, convert = F)
 
-# getting a weird encoding error when using tolower. changing all to UTF-8
-Encoding(cbsa$State.name)
+# getting a weird encoding error when using tolower on county name. changing all to UTF-8
 cbsa$County.name <- stringi::stri_trans_general(cbsa$County.name, "latin-ascii")
 
+# convert cbsa$state.full and abbrev tolower
 cbsa$State.full <- tolower(cbsa$State.full)
 cbsa$County.name <- tolower(cbsa$County.name)
 
+# convert storm_event$cz_name and state and state abb tolower
 storm_events$CZ_NAME <- tolower(storm_events$CZ_NAME)
 storm_events$STATE <- tolower(storm_events$STATE)
+storm_events$STATE.ABB <- tolower(storm_events$STATE.ABB)
 library(dplyr)
 
-# join to get MSA names into storm_events
+# join on names, abbs and county names into storm_events
 storm_events <- inner_join(storm_events, cbsa, by = c("STATE" = "State.full", "CZ_NAME" = "County.name", "STATE.ABB" = "State.name"))
 
 # drop the columns we don't need for this analysis
@@ -107,9 +109,54 @@ by.MSA <- group_by(storm_events_precip, STATE, EVENT_TYPE, CBSA.code, CBSA.title
 MSA.count <- dplyr::summarize(by.MSA, count=n())
 MSA.count
 
-# install.packages("ggmap")
-library(ggmaps)
-#install.packages("UScensus2010")
-library(UScensus2010)
+# from brian's example
+# install.packages("rgdal")
+library(rgdal)
+# install.packages("rgeos")
+library(rgeos)
+library(maptools)
+library(ggplot2)
+library(ggmap)
 
-unique(MSA.count$CBSA.code)
+# set system local because a few characters in shapefile cause trouble
+# when filtering out select US territories from being mapped
+Sys.setlocale('LC_ALL', 'C')
+setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts/data")
+
+# read shapefile
+
+## couldnt get this to work for me
+sf_cbsa <- "shapefile/tl_2010_us_cbsa10.shp"
+cbsa_map <- readOGR(sf_cbsa, layer = "tl_2010_us_cbsa10")
+
+cbsa_map$NAME10
+
+# sf_state <- "tl_2010_us_state10.shp"
+# state_map <- readOGR(sf_state, layer = "tl_2010_us_state10")
+cbsa_map <- readOGR("tl_2015_us_cbsa.shp", layer = "tl_2015_us_cbsa")
+
+state_map <- readOGR("tl_2015_us_state.shp", layer = "tl_2015_us_state")
+names(cbsa_map)
+
+
+# # remove CBSAs, etc. of Alaska, Hawaii, and Puerto Rico
+cbsa_map <- cbsa_map[!grepl("AK$|HI$|PR$", cbsa_map$NAME), ]
+length(cbsa_map)   # result should be 933 after remove those three areas
+state_map <- state_map[!grepl("Alaska|Hawaii|Puerto", state_map$NAME), ]
+length(state_map)  # result should be 49 after removing those three areas
+
+# make data ggplot friendly
+cbsa_map_f <- fortify(cbsa_map, region = "GEOID")
+state_map_f <- fortify(state_map, region = "GEOID")
+
+# create map, draw object you want in the background first,
+# i.e., state boundaries then CBSA boundaries
+bdry_map <- ggplot(NULL) +
+  geom_polygon(data = state_map_f, aes(long, lat, group = group), color = "black", fill = "white") +
+  geom_polygon(data = cbsa_map_f, aes(long, lat, group = group), color = "blue", fill = "light grey") +
+  theme_bw()
+
+# output map
+bdry_map
+
+#### use 2010 shapefiles!
