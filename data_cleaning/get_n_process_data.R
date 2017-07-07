@@ -20,10 +20,11 @@
 
 #-- load required packages
 library(checkpoint)
-#checkpoint("2017-03-24")
+checkpoint("2017-07-04")
 library(plyr)
 library(dtplyr)
 library(stringr)
+library(purrr)
 library(rnoaa)
 library(bea.R)
 
@@ -141,7 +142,6 @@ rm(damage_magnitude, damage_numeric, damage_value)
 
 # Rearrange columns
 names(storm_events)
-# storm_events <- storm_events[, c(26,24,27,25, 8:11, 15:17, 18:21, 28:30)]  # rearrange columns # old order
 storm_events <- storm_events[, c(52,54,53,55, 8:10, 13, 17, 30:32, 45:48, 58:60)]
 colnames(storm_events) <- c("EVENTS.begin_date", # 52
                             "EVENTS.begin_time_UTC", # 54
@@ -211,7 +211,7 @@ storm_events$MOS.lon <- rep(0, length(storm_events$EVENTS.ID))
 storm_events$MOS.st <- rep(0, length(storm_events$EVENTS.ID))
 storm_events$MOS.dist_from_event.km <- rep(0, length(storm_events$EVENTS.ID))
 
-foreach (j = 1:length(storm_events$EVENTS.ID)) %do% {
+for (j in 1:length(storm_events$EVENTS.ID)) {
   
   dd <- distm(matrix(c(storm_events$EVENTS.begin_lon[j], storm_events$EVENTS.begin_lat[j]), ncol = 2),
               matrix(c(mos_stations$LON, mos_stations$LAT), ncol = 2),
@@ -242,15 +242,39 @@ storm_events_precip <- dplyr::filter(storm_events,
 
 # Not sure if this is faster, pull each station's relevant obs, than pull
 # all data and then searching for matches. For now, let's try the "loop" approach.
-temp_ls <- lapply(1:length(storm_events_precip$EVENTS.ID),
-  function(j) data.frame(
+
+# sadly have to deal with poorly handled error in ghcnd_search()
+temp_ghcnd_ls <- vector("list", length(storm_events_precip$EVENTS.ID))
+for (j in 1:length(storm_events_precip$EVENTS.ID)) {
+  result <- tryCatch({
     ghcnd_search(storm_events_precip$GHCND.ID[j], var = "PRCP",
                  date_min = storm_events_precip$EVENTS.begin_date[j],
-                 date_max = storm_events_precip$EVENTS.begin_date[j]),
-    stringsAsFactors = FALSE))
-rm(temp_ls)
+                 date_max = storm_events_precip$EVENTS.begin_date[j])
+  }, warning = function(w) {
+    return(NA)
+  }, error = function(e) {
+    return(NA)
+  }, finally = {
+    print(j)
+  })
+  temp_ghcnd_ls[[j]] <- result
+}
 
-?ghcnd_search
+# temp_ls <- lapply(1:length(storm_events_precip$EVENTS.ID),
+#   function(j) data.frame(
+#     ghcnd_search(storm_events_precip$GHCND.ID[j], var = "PRCP",
+#                  date_min = storm_events_precip$EVENTS.begin_date[j],
+#                  date_max = storm_events_precip$EVENTS.begin_date[j]),
+#     stringsAsFactors = FALSE))
+# rm(temp_ls)
+
+
+#-- save workspace to not have to re-create dataset when something goes wrong
+#-- for time consuming processes
+save.image("2017-07-06_2330.RData")
+load("2017-07-06_2330.RData")
+
+
 # Hack job. Not sure why I can't just use dplyr::bind_rows()
 #station_obs <- dplyr::bind_rows(temp_ls)
 station_obs <- data.frame(prcp.id = character(),
@@ -273,12 +297,6 @@ station_obs <- station_obs[!is.na(station_obs$prcp.prcp),]
 # (Only if station_obs has PRCP values.) Convert units to inches from 0.1mm
 station_obs$prcp.prcp <- station_obs$prcp.prcp*0.1
 station_obs$prcp.prcp <- convert_precip(station_obs$prcp.prcp, old_metric = "mm", new_metric = "inches", round = 2)
-
-
-#-- save workspace to not have to re-create dataset when something goes wrong
-#-- for time consuming processes
-# save.image("~/R/NOAA/2017-02-28_2330.RData")
-load("2017-02-28_2330.RData")
 
 #-- MOS QPF categories
 #-- 0 = no precipitation expected;
