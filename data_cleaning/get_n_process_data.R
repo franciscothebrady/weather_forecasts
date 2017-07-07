@@ -244,20 +244,35 @@ storm_events_precip <- dplyr::filter(storm_events,
 # all data and then searching for matches. For now, let's try the "loop" approach.
 
 # sadly have to deal with poorly handled error in ghcnd_search()
-temp_ghcnd_ls <- vector("list", length(storm_events_precip$EVENTS.ID))
+temp_ls <- vector("list", length(storm_events_precip$EVENTS.ID))
 for (j in 1:length(storm_events_precip$EVENTS.ID)) {
   result <- tryCatch({
-    ghcnd_search(storm_events_precip$GHCND.ID[j], var = "PRCP",
+    data.frame(ghcnd_search(storm_events_precip$GHCND.ID[j], var = "PRCP",
                  date_min = storm_events_precip$EVENTS.begin_date[j],
-                 date_max = storm_events_precip$EVENTS.begin_date[j])
+                 date_max = storm_events_precip$EVENTS.begin_date[j]),
+               stringsAsFactors = FALSE)
   }, warning = function(w) {
-    return(NA)
+    return(
+      data.frame(prcp.id=storm_events_precip$GHCND.ID[j],
+                 prcp.prcp=NA,
+                 prcp.date=storm_events_precip$EVENTS.begin_date[j],
+                 prcp.mflag="",
+                 prcp.qflag="",
+                 prcp.sflag="", stringsAsFactors = FALSE)
+    )
   }, error = function(e) {
-    return(NA)
+    return(
+      data.frame(prcp.id=storm_events_precip$GHCND.ID[j],
+                 prcp.prcp=NA,
+                 prcp.date=storm_events_precip$EVENTS.begin_date[j],
+                 prcp.mflag="",
+                 prcp.qflag="",
+                 prcp.sflag="", stringsAsFactors = FALSE)
+    )
   }, finally = {
     print(j)
   })
-  temp_ghcnd_ls[[j]] <- result
+  temp_ls[[j]] <- result
 }
 
 # temp_ls <- lapply(1:length(storm_events_precip$EVENTS.ID),
@@ -272,7 +287,7 @@ for (j in 1:length(storm_events_precip$EVENTS.ID)) {
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
 save.image("data/snapshot_2017-07-06_2330.RData")
-load("data/snapshot_2017-07-06_2330.RData")
+#load("data/snapshot_2017-07-06_2330.RData")
 
 
 # Hack job. Not sure why I can't just use dplyr::bind_rows()
