@@ -271,8 +271,8 @@ for (j in 1:length(storm_events_precip$EVENTS.ID)) {
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-save.image("2017-07-06_2330.RData")
-load("2017-07-06_2330.RData")
+save.image("data/snapshot_2017-07-06_2330.RData")
+load("data/snapshot_2017-07-06_2330.RData")
 
 
 # Hack job. Not sure why I can't just use dplyr::bind_rows()
