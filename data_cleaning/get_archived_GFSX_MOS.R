@@ -86,8 +86,8 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   mos_df <- cbind.data.frame(FCDT=fc_t, mos_df)
     
   # append runtime in ymd_hms format
-  rt_t1 <- rep(runtime_dt, 15)
-  rt_t2 <- rep(runtime_hr, 15)
+  rt_t1 <- rep(paste0(runtime_year, runtime_month, runtime_day), 15)
+  rt_t2 <- rep(runtime_hour, 15)
   rt_t2 <- gsub(".$", "", rt_t2)  # remove Zs, but remember we're still in UTC/Zulu
   rt_t3 <- ymd_hms(paste(rt_t1, paste0(rt_t2, ":00:00")), tz="Zulu")
   mos_df <- cbind.data.frame(RTDT=rt_t3, mos_df)
