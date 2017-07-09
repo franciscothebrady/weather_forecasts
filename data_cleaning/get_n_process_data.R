@@ -243,7 +243,15 @@ storm_events_precip <- dplyr::filter(storm_events,
 # Not sure if this is faster, pull each station's relevant obs, than pull
 # all data and then searching for matches. For now, let's try the "loop" approach.
 
-# sadly have to deal with poorly handled error in ghcnd_search()
+# temp_ls <- lapply(1:length(storm_events_precip$EVENTS.ID),
+#   function(j) data.frame(
+#     ghcnd_search(storm_events_precip$GHCND.ID[j], var = "PRCP",
+#                  date_min = storm_events_precip$EVENTS.begin_date[j],
+#                  date_max = storm_events_precip$EVENTS.begin_date[j]),
+#     stringsAsFactors = FALSE))
+# rm(temp_ls)
+
+# sadly have to deal with errors from ghcnd_search()
 temp_ls <- vector("list", length(storm_events_precip$EVENTS.ID))
 for (j in 1:length(storm_events_precip$EVENTS.ID)) {
   result <- tryCatch({
@@ -275,18 +283,10 @@ for (j in 1:length(storm_events_precip$EVENTS.ID)) {
   temp_ls[[j]] <- result
 }
 
-# temp_ls <- lapply(1:length(storm_events_precip$EVENTS.ID),
-#   function(j) data.frame(
-#     ghcnd_search(storm_events_precip$GHCND.ID[j], var = "PRCP",
-#                  date_min = storm_events_precip$EVENTS.begin_date[j],
-#                  date_max = storm_events_precip$EVENTS.begin_date[j]),
-#     stringsAsFactors = FALSE))
-# rm(temp_ls)
-
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-save.image("data/snapshot_2017-07-06_2330.RData")
+#save.image("data/snapshot_2017-07-06_2330.RData")
 #load("data/snapshot_2017-07-06_2330.RData")
 
 
@@ -303,8 +303,6 @@ station_obs$prcp.id <- as.character(station_obs$prcp.id)
 station_obs$prcp.prcp <- as.numeric(station_obs$prcp.prcp)
 station_obs$prcp.date <- as.Date(station_obs$prcp.date)
 rm(i)
-#obs_prcp <- meteo_pull_monitors(storm_events_precip$GHCND.ID, var = "PRCP",
-#                                date_min = "2015-01-01", date_max = "2015-12-31")
 
 # Remove rows with prcp.prcp as NA
 station_obs <- station_obs[!is.na(station_obs$prcp.prcp),]
@@ -338,7 +336,6 @@ storm_events_precip <- merge(storm_events_precip, station_obs,
                              by.y = c("prcp.id", "prcp.date"))
 names(storm_events_precip)[30] <- "GHCND.prcp_cat"
 
-write.csv(storm_events, "storm_events_with_obs_2015.csv")
 
 ## NEXT STEPS
 ## create new df with dates, station name
@@ -381,6 +378,50 @@ write.csv(storm_events, "storm_events_with_obs_2015.csv")
 # storm_events_precip <- cbind(storm_events_precip, mos_gfs_q12)
 
 
+#-- save workspace to not have to re-create dataset when something goes wrong
+#-- for time consuming processes
+#save.image("data/snapshot_2017-07-09_1830.RData")
+#load("data/snapshot_2017-07-09_1830.RData")
+
+
+# load MOS retrival function
+source("data_cleaning/get_archived_GFSX_MOS.R")
+
+# collect 5 day ahead forecast on Q24
+mos5day24 <- NULL
+for (eid in 1:storm_events_precip$EVENTS.ID) {
+  print(eid)
+  mos_df <- get_archived_GFSX_MOS(storm_events_precip$MOS.ICAO[eid],
+                        format(storm_events_precip$EVENTS.begin_date[eid]-5, "%Y%m%d"),
+                        "00Z")
+  print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
+  mos5day24 <- rbind(mos5day24,
+                     cbind.data.frame(
+                       dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
+                       dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q24)
+                     )
+}
+
+# collect 1 day ahead forecast on Q24
+mos1day24 <- NULL
+for (eid in 1:storm_events_precip$EVENTS.ID) {
+  print(eid)
+  mos_df <- get_archived_GFSX_MOS(storm_events_precip$MOS.ICAO[eid],
+                                  format(storm_events_precip$EVENTS.begin_date[eid]-1, "%Y%m%d"),
+                                  "00Z")
+  print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
+  mos1day24 <- rbind(mos1day24,
+                     cbind.data.frame(
+                       dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
+                       dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q24)
+  )
+}
+
+
+#-- save workspace to not have to re-create dataset when something goes wrong
+#-- for time consuming processes
+save.image("data/snapshot_2017-07-09_1939.RData")
+#load("data/snapshot_2017-07-09_1939.RData")
 
 
 # using the FCC API to match lat/lon to census tracts
@@ -434,7 +475,3 @@ for (i in 1:100) {
 ## merge into storm_events df
 ## access census data for median income at the census block level
 ## create weight for impact? 
-
-
-#-- shutdown all clusters
-#stopCluster(cl)
