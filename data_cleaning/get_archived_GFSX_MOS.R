@@ -48,9 +48,13 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   # locate block of MOS output that user wants in file
   block_start <- which(str_detect(mos_outputs, station_id) &
                          str_detect(mos_outputs, runtime_date))
+  if (!any(block_start)) {
+    return(NULL)
+  } else {
+    
   block_end   <- block_start +
     str_which(mos_outputs[block_start:length(mos_outputs)], "\\s{70}")[1] - 2
-  
+
   # user selected MOS output
   mos_chr <- mos_outputs[block_start:block_end]
   
@@ -100,4 +104,6 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   
   # final version of data frame we can use to do stuff
   return(mos_df)
+  
+  }
 }

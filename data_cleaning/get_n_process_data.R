@@ -387,34 +387,60 @@ names(storm_events_precip)[30] <- "GHCND.prcp_cat"
 # load MOS retrival function
 source("data_cleaning/get_archived_GFSX_MOS.R")
 
-# collect 5 day ahead forecast on Q24
-mos5day24 <- NULL
+#-- beware! nasty hack job below
+
+# collect 5 day ahead forecast on Q12
+mos5day12 <- NULL
 for (eid in 1:storm_events_precip$EVENTS.ID) {
   print(eid)
   mos_df <- get_archived_GFSX_MOS(storm_events_precip$MOS.ICAO[eid],
-                        format(storm_events_precip$EVENTS.begin_date[eid]-5, "%Y%m%d"),
-                        "00Z")
-  print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
-  mos5day24 <- rbind(mos5day24,
-                     cbind.data.frame(
-                       dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
-                       dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q24)
-                     )
+                                  format(storm_events_precip$EVENTS.begin_date[eid]-5, "%Y%m%d"),
+                                  "00Z")
+  if (is.null(mos_df)) {
+    mos5day12 <- rbind(mos5day12,
+                       cbind.data.frame(
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         ICAO=storm_events_precip$MOS.ICAO[eid],
+                         RTDT=NA,
+                         FCDT=as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"),
+                         Q12=NA)
+    )
+  } else {
+    print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
+    mos5day12 <- rbind(mos5day12,
+                       cbind.data.frame(
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
+                         Q12=dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q12)
+    )
+  }
 }
 
-# collect 1 day ahead forecast on Q24
-mos1day24 <- NULL
+# collect 1 day ahead forecast on Q12
+mos1day12 <- NULL
 for (eid in 1:storm_events_precip$EVENTS.ID) {
   print(eid)
   mos_df <- get_archived_GFSX_MOS(storm_events_precip$MOS.ICAO[eid],
                                   format(storm_events_precip$EVENTS.begin_date[eid]-1, "%Y%m%d"),
                                   "00Z")
-  print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
-  mos1day24 <- rbind(mos1day24,
-                     cbind.data.frame(
-                       dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
-                       dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q24)
-  )
+  if (is.null(mos_df)) {
+    mos1day12 <- rbind(mos1day12,
+                       cbind.data.frame(
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         ICAO=storm_events_precip$MOS.ICAO[eid],
+                         RTDT=NA,
+                         FCDT=as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"),
+                         Q12=NA)
+                       )
+  } else {
+    print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
+    mos1day12 <- rbind(mos1day12,
+                       cbind.data.frame(
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
+                         Q12=dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q12)
+    )
+  }
 }
 
 
