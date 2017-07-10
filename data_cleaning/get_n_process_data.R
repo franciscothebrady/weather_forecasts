@@ -391,7 +391,7 @@ source("data_cleaning/get_archived_GFSX_MOS.R")
 
 # collect 5 day ahead forecast on Q12
 mos5day12 <- NULL
-for (eid in 1:storm_events_precip$EVENTS.ID) {
+for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
   print(eid)
   mos_df <- get_archived_GFSX_MOS(storm_events_precip$MOS.ICAO[eid],
                                   format(storm_events_precip$EVENTS.begin_date[eid]-5, "%Y%m%d"),
@@ -418,7 +418,7 @@ for (eid in 1:storm_events_precip$EVENTS.ID) {
 
 # collect 1 day ahead forecast on Q12
 mos1day12 <- NULL
-for (eid in 1:storm_events_precip$EVENTS.ID) {
+for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
   print(eid)
   mos_df <- get_archived_GFSX_MOS(storm_events_precip$MOS.ICAO[eid],
                                   format(storm_events_precip$EVENTS.begin_date[eid]-1, "%Y%m%d"),
