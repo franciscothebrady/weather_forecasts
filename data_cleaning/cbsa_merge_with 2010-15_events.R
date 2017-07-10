@@ -171,4 +171,16 @@ cbsa_and_events <- rename(cbsa_and_events, event_freq = n)
 names(cbsa_and_events)
 
 # add event freq to bdry_map
-freq_map <- bdry_map 
+freq_map <- ggplot(NULL) +
+  geom_polygon(data = state_map_f, aes(long, lat, group = group), color = "black", fill = "white") +
+  geom_polygon(data = cbsa_and_events, aes(long, lat, group = group, color = event_freq)) +
+  theme_bw()
+freq_map
+
+# diff attempt
+# add event freq to bdry_map
+freq_map1 <- ggplot(NULL) +
+  geom_polygon(data = state_map_f, aes(long, lat, group = group), color = "black", fill = "white") +
+  geom_polygon(data = cbsa_and_events, aes(long, lat, group = group, color = log(event_freq))) +
+  theme_bw()
+freq_map1
