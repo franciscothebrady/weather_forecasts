@@ -1,6 +1,6 @@
 # francisco
 # past event frequencies by MSA - using events data from 2010-2015
-setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts/data")
+setwd("~/weather_forecasts")
 # install.packages("RCurl")
 # install.packages("gdata")
 library(RCurl)
@@ -102,14 +102,56 @@ storm_events_precip <- dplyr::filter(storm_event_freq,
 
 summary(storm_events_precip)
 # not super helpful
-
+# total events in each msa separated by event type 
+library(dplyr)
 by.MSA <- group_by(storm_events_precip, STATE, EVENT_TYPE, CBSA.code, CBSA.title)
 MSA.count <- dplyr::summarize(by.MSA, count=n())
 MSA.count
 
-# install.packages("ggmap")
-library(ggmaps)
-#install.packages("UScensus2010")
-library(UScensus2010)
+# total events in each msa (all types of events)
+msa.totals <- group_by(storm_events_precip, CBSA.code)
+msa.totals <- summarize(msa.totals, count=n())
 
-unique(MSA.count$CBSA.code)
+# from brian's example
+library(rgdal)
+library(rgeos)
+library(maptools)
+library(ggplot2)
+library(ggmap)
+
+# set system local because a few characters in shapefile cause trouble
+# when filtering out select US territories from being mapped
+Sys.setlocale('LC_ALL', 'C')
+
+# read shapefile
+sf_cbsa <- "shapefile/tl_2010_us_cbsa10.shp"
+cbsa_map <- readOGR(sf_cbsa, layer = "tl_2010_us_cbsa10")
+sf_state <- "shapefile/tl_2010_us_state10.shp"
+state_map <- readOGR(sf_state, layer = "tl_2010_us_state10")
+
+# remove CBSAs, etc. of Alaska, Hawaii, and Puerto Rico
+cbsa_map <- cbsa_map[!grepl("AK$|HI$|PR$", cbsa_map$NAME10), ]
+length(cbsa_map)   # result should be 933 after remove those three areas
+state_map <- state_map[!grepl("Alaska|Hawaii|Puerto", state_map$NAME10), ]
+length(state_map)  # result should be 49 after removing those three areas
+
+# make data ggplot friendly
+cbsa_map_f <- fortify(cbsa_map, region = "GEOID10")
+state_map_f <- fortify(state_map, region = "GEOID10")
+
+# create map, draw object you want in the background first,
+# i.e., state boundaries then CBSA boundaries
+bdry_map <- ggplot(NULL) +
+  geom_polygon(data = state_map_f, aes(long, lat, group = group), color = "black", fill = "white") +
+  geom_polygon(data = cbsa_map_f, aes(long, lat, group = group), color = "blue", fill = "light grey") +
+  theme_bw()
+
+# output map
+bdry_map
+
+# combine cbsa_map_f with event totals by msa, merge on cbsa code
+
+cbsa_map_totals_f <- merge(cbsa_map_f, msa.totals, by.x="id", by.y="CBSA.code")
+
+# now that the frequency data is in there, figure out how to use scale_fill_gradient
+# to change the color of the fill based on the number of events
