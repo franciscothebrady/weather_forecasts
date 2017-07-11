@@ -184,3 +184,4 @@ freq_map1 <- ggplot(NULL) +
   geom_polygon(data = cbsa_and_events, aes(long, lat, group = group, color = log(event_freq))) +
   theme_bw()
 freq_map1
+
