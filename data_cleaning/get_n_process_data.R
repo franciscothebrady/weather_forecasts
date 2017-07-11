@@ -282,6 +282,7 @@ for (j in 1:length(storm_events_precip$EVENTS.ID)) {
   })
   temp_ls[[j]] <- result
 }
+rm(result)
 
 
 #-- save workspace to not have to re-create dataset when something goes wrong
@@ -334,7 +335,7 @@ station_obs <- within(station_obs, prcp.prcp[prcp.prcp < 0.01] <- 0)
 storm_events_precip <- merge(storm_events_precip, station_obs,
                              by.x = c("GHCND.ID", "EVENTS.begin_date"),
                              by.y = c("prcp.id", "prcp.date"))
-names(storm_events_precip)[30] <- "GHCND.prcp_cat"
+names(storm_events_precip)[31] <- "GHCND.prcp_cat"
 
 
 ## NEXT STEPS
@@ -399,6 +400,7 @@ for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
   if (is.null(mos_df)) {
     mos5day12 <- rbind(mos5day12,
                        cbind.data.frame(
+                         index=eid,
                          EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
                          ICAO=storm_events_precip$MOS.ICAO[eid],
                          RTDT=NA,
@@ -409,6 +411,7 @@ for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
     print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
     mos5day12 <- rbind(mos5day12,
                        cbind.data.frame(
+                         index=eid,
                          EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
                          dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
                          Q12=dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q12)
@@ -426,6 +429,7 @@ for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
   if (is.null(mos_df)) {
     mos1day12 <- rbind(mos1day12,
                        cbind.data.frame(
+                         index=eid,
                          EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
                          ICAO=storm_events_precip$MOS.ICAO[eid],
                          RTDT=NA,
@@ -436,6 +440,7 @@ for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
     print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
     mos1day12 <- rbind(mos1day12,
                        cbind.data.frame(
+                         index=eid,
                          EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
                          dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
                          Q12=dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q12)
@@ -443,11 +448,84 @@ for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
   }
 }
 
+# collect 6 day ahead forecast on Q24
+mos6day24 <- NULL
+for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
+  print(eid)
+  mos_df <- get_archived_GFSX_MOS(storm_events_precip$MOS.ICAO[eid],
+                                  format(storm_events_precip$EVENTS.begin_date[eid]-6, "%Y%m%d"),
+                                  "00Z")
+  if (is.null(mos_df)) {
+    mos6day24 <- rbind(mos6day24,
+                       cbind.data.frame(
+                         index=eid,
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         ICAO=storm_events_precip$MOS.ICAO[eid],
+                         RTDT=NA,
+                         FCDT=as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"),
+                         Q24=NA)
+    )
+  } else {
+    print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
+    mos6day24 <- rbind(mos6day24,
+                       cbind.data.frame(
+                         index=eid,
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
+                         Q24=dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q24)
+    )
+  }
+}
+
+# collect 2 day ahead forecast on Q24
+mos2day24 <- NULL
+for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
+  print(eid)
+  mos_df <- get_archived_GFSX_MOS(storm_events_precip$MOS.ICAO[eid],
+                                  format(storm_events_precip$EVENTS.begin_date[eid]-2, "%Y%m%d"),
+                                  "00Z")
+  if (is.null(mos_df)) {
+    mos2day24 <- rbind(mos2day24,
+                       cbind.data.frame(
+                         index=eid,
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         ICAO=storm_events_precip$MOS.ICAO[eid],
+                         RTDT=NA,
+                         FCDT=as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"),
+                         Q24=NA)
+    )
+  } else {
+    print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
+    mos2day24 <- rbind(mos2day24,
+                       cbind.data.frame(
+                         index=eid,
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
+                         Q24=dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q24)
+    )
+  }
+}
+
+rm(j, eid)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-save.image("data/snapshot_2017-07-09_1939.RData")
+#save.image("data/snapshot_2017-07-09_1939.RData")
 #load("data/snapshot_2017-07-09_1939.RData")
+
+
+#-- merge forecast data to storm_events_precip ID and date
+mos_q24 <- merge(mos2day24, mos6day24, by.x="index", by.y="index")
+mos_q24 <- data.frame(Q24.f2=mos_q24$Q24.x, Q24.f6=mos_q24$Q24.y)
+storm_events_precip <- cbind.data.frame(storm_events_precip, mos_q24)
+names(storm_events_precip)[32] <- "Q12.f1"
+names(storm_events_precip)[33] <- "Q12.f5"
+rm(mos_q24)
+
+#-- save workspace to not have to re-create dataset when something goes wrong
+#-- for time consuming processes
+#save.image("data/snapshot_2017-07-11_0456.RData")
+load("data/snapshot_2017-07-11_0456.RData")
 
 
 # using the FCC API to match lat/lon to census tracts
