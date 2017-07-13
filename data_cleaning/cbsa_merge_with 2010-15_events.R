@@ -165,23 +165,16 @@ bdry_map <- ggplot(NULL) +
 bdry_map
 
 # merge event freq by msa data with cbsa map.
-cbsa_and_events <- merge(cbsa_map_f, msa.totals, by.x ="id", by.y="CBSA.code")
-names(cbsa_and_events)
-cbsa_and_events <- rename(cbsa_and_events, event_freq = n)
-names(cbsa_and_events)
+cbsa_map_freq_f <- merge(cbsa_map_f, msa.totals, by.x ="id", by.y="CBSA.code")
+names(cbsa_map_freq_f)
+cbsa_map_freq_f <- rename(cbsa_map_freq_f, event_freq = n)
+names(cbsa_map_freq_f)
 
 # add event freq to bdry_map
 freq_map <- ggplot(NULL) +
   geom_polygon(data = state_map_f, aes(long, lat, group = group), color = "black", fill = "white") +
-  geom_polygon(data = cbsa_and_events, aes(long, lat, group = group, color = event_freq)) +
+  geom_polygon(data = cbsa_map_freq_f, aes(long, lat, group = group, color = event_freq)) +
   theme_bw()
+
 freq_map
-
-# diff attempt
-# add event freq to bdry_map
-freq_map1 <- ggplot(NULL) +
-  geom_polygon(data = state_map_f, aes(long, lat, group = group), color = "black", fill = "white") +
-  geom_polygon(data = cbsa_and_events, aes(long, lat, group = group, color = log(event_freq))) +
-  theme_bw()
-freq_map1
-
+# works but ugly 
