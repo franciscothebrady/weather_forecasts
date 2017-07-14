@@ -171,10 +171,15 @@ cbsa_map_freq_f <- rename(cbsa_map_freq_f, event_freq = n)
 names(cbsa_map_freq_f)
 
 # add event freq to bdry_map
-freq_map <- ggplot(NULL) +
+bdry_map <- ggplot(NULL) +
   geom_polygon(data = state_map_f, aes(long, lat, group = group), color = "black", fill = "white") +
-  geom_polygon(data = cbsa_map_freq_f, aes(long, lat, group = group, color = event_freq)) +
+  geom_polygon(data = cbsa_map_f, aes(long, lat, group = group), color = "blue", fill = "light grey") +
   theme_bw()
+?geom_polygon
+bdry_map
 
+# layer on top the frequency data
+freq_map <- bdry_map + geom_polygon(data = cbsa_map_freq_f, aes(long, lat, group = group) fill = cbsa_map_freq_f$event_freq)
+?geom_polygon
 freq_map
-# works but ugly 
+
