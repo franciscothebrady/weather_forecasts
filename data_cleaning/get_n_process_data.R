@@ -525,7 +525,20 @@ rm(mos_q24)
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
 #save.image("data/snapshot_2017-07-11_0456.RData")
-load("data/snapshot_2017-07-11_0456.RData")
+#load("data/snapshot_2017-07-11_0456.RData")
+
+storm_events_precip <- dplyr::mutate(storm_events_precip, 
+       judge1 = as.numeric(GHCND.prcp_cat) - as.numeric(Q24.f2), 
+       judge2 = as.numeric(GHCND.prcp_cat) - as.numeric(Q24.f6))
+
+#-- save workspace to not have to re-create dataset when something goes wrong
+#-- for time consuming processes
+#save.image("data/snapshot_2017-07-14_1416.RData")
+load("data/snapshot_2017-07-14_1416.RData")
+
+dplyr::summarise(storm_events_precip, 
+                 mean(judge1, na.rm = TRUE), 
+                 mean(judge2, na.rm = TRUE))
 
 
 # using the FCC API to match lat/lon to census tracts
