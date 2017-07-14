@@ -528,8 +528,8 @@ rm(mos_q24)
 #load("data/snapshot_2017-07-11_0456.RData")
 
 storm_events_precip <- dplyr::mutate(storm_events_precip, 
-       judge1 = as.numeric(GHCND.prcp_cat) - as.numeric(Q24.f2), 
-       judge2 = as.numeric(GHCND.prcp_cat) - as.numeric(Q24.f6))
+       judge1 = GHCND.prcp_cat - as.numeric(as.character(Q24.f2)), 
+       judge2 = GHCND.prcp_cat - as.numeric(as.character(Q24.f6)))
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
@@ -540,8 +540,24 @@ dplyr::summarise(storm_events_precip,
                  mean(judge1, na.rm = TRUE), 
                  mean(judge2, na.rm = TRUE))
 
-t.test(storm_events_precip$judge1, storm_events_precip$judge2, paired = TRUE)
+t.test(abs(storm_events_precip$judge1), abs(storm_events_precip$judge2), paired = TRUE)
 
+plot(storm_events_precip$judge1)
+plot(abs(storm_events_precip$judge2))
+
+heavy.rain <- dplyr::filter(storm_events_precip, EVENTS.type == "Heavy Rain")
+heavy.rain.x <- heavy.rain$judge1
+heavy.rain.x2 <- heavy.rain$judge2
+heavy.rain.y <- heavy.rain$EVENTS.damage_value* 10^heavy.rain$EVENTS.damage_magnitude
+plot((heavy.rain.x), heavy.rain.y, ylim=c(0, 150000))
+?plot
+t.test(heavy.rain.x, heavy.rain.x2, paired = TRUE)
+
+plot(abs(storm_events_precip$judge1), (storm_events_precip$EVENTS.damage_value* 10^storm_events_precip$EVENTS.damage_magnitude))
+test <- lm((storm_events_precip$EVENTS.damage_value* 10^storm_events_precip$EVENTS.damage_magnitude) ~ abs(storm_events_precip$judge1))
+plot(test)
+summary(test)
+table(storm_events_precip$EVENTS.type)
 # using the FCC API to match lat/lon to census tracts
 # census block conversion API docs here: https://www.fcc.gov/general/census-block-conversions-api
 
