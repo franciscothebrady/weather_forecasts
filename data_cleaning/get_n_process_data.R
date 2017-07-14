@@ -540,6 +540,7 @@ dplyr::summarise(storm_events_precip,
                  mean(judge1, na.rm = TRUE), 
                  mean(judge2, na.rm = TRUE))
 
+t.test(storm_events_precip$judge1, storm_events_precip$judge2, paired = TRUE)
 
 # using the FCC API to match lat/lon to census tracts
 # census block conversion API docs here: https://www.fcc.gov/general/census-block-conversions-api
