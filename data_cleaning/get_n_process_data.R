@@ -561,10 +561,12 @@ table(storm_events_precip$EVENTS.type)
 # using the FCC API to match lat/lon to census tracts
 # census block conversion API docs here: https://www.fcc.gov/general/census-block-conversions-api
 
-# install.packages("easypackages") this package allows you to load multiple packages at once
-library(easypackages)
-libraries("httr","jsonlite","dplyr")
-
+# install.packages("easypackages") # this package allows you to load multiple packages at once
+# library(easypackages)
+# install.packages("httr")
+# install.packages("jsonlite")
+library(jsonlite)
+library(httr)
 options(stringsAsFactors = FALSE)
 
 ## replace the below with the actual storm_events df
@@ -573,39 +575,43 @@ options(stringsAsFactors = FALSE)
 # storms <- filter(storms, BEGIN_LAT != "NA")
 # storms <- head(storms, 100)
 
+
 # following this as an example: http://tophcito.blogspot.com/2015/11/accessing-apis-from-r-and-little-r.html#fn2
 # set up the url and parameters
 
 url <- "http://data.fcc.gov/api/block/find?format=json"
 
 
-latitude <- storms$BEGIN_LAT # replace
+latitude <- heavy.rain$EVENTS.begin_lat
 
-longitude <- storms$BEGIN_LON # replace
+longitude <- heavy.rain$EVENTS.begin_lon
+
 request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false")
 
 str(request)
 # use the names of the lists as the names for the df to make
 
-tracts <- data.frame(FIPS = rep(0, 100),
-                     County.FIPS = rep(0, 100),
-                     County.name = rep(0, 100),
-                     State.FIPS = rep(0, 100),
-                     State.code = rep(0, 100),
-                     State.name = rep(0, 100),
-                     status     = rep(0, 100),
-                     executionTime = rep(0, 100))
+tracts <- data.frame(FIPS = rep(0, 350),
+                     County.FIPS = rep(0, 350),
+                     County.name = rep(0, 350),
+                     State.FIPS = rep(0, 350),
+                     State.code = rep(0, 350),
+                     State.name = rep(0, 350),
+                     status     = rep(0, 350),
+                     executionTime = rep(0, 350))
 
-
+nrain <- length(heavy.rain$EVENTS.begin_lat)
 #  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
-for (i in 1:100) {
-  latitude <- storms$BEGIN_LAT[i]  # replace
-  longitude <- storms$BEGIN_LON[i]  # replace 
+for (i in 1:nrain) {
+  latitude <- heavy.rain$EVENTS.begin_lat[i]  
+  longitude <- heavy.rain$EVENTS.begin_lon[i]
   request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
   tracts[i,] <- as.data.frame.list(request)
 }
 
+tracts
 ## next steps:
 ## merge into storm_events df
 ## access census data for median income at the census block level
+## merge in GDP/MSA on county names and 
 ## create weight for impact? 
