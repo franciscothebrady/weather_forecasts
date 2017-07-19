@@ -561,8 +561,6 @@ table(storm_events_precip$EVENTS.type)
 # using the FCC API to match lat/lon to census tracts
 # census block conversion API docs here: https://www.fcc.gov/general/census-block-conversions-api
 
-# install.packages("easypackages") # this package allows you to load multiple packages at once
-# library(easypackages)
 # install.packages("httr")
 # install.packages("jsonlite")
 library(jsonlite)
