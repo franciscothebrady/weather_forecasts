@@ -15,7 +15,7 @@
 
 
 #-- set working directory
-#setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts")
+#setwd("C:/Users/franc/Documents/Research/weather_forecasts")
 
 
 #-- load required packages
@@ -91,9 +91,19 @@ rm(cbsa_info)
 #-- get severe weather data with damage reports from NOAA
 #-- (https://www.ncdc.noaa.gov/swdi/#Intro)
 
-# take storm events data for 2015
-# https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz
-storm_events <- as.data.frame(read.csv("data/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz", stringsAsFactors = FALSE))
+# take storm events data for 2010-2015
+# https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20170718.csv.gz
+
+# take storm events data for 2010-15
+ten<- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2010_c20160223.csv.gz", header = T, stringsAsFactors = F))
+eleven<- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2011_c20160223.csv.gz", header = T, stringsAsFactors = F))
+twelve<- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2012_c20160223.csv.gz", header = T, stringsAsFactors = F))
+thirteen<- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2013_c20160223.csv.gz", header = T, stringsAsFactors = F))
+fourteen<- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2014_c20160617.csv.gz", header = T, stringsAsFactors = F))
+fifteen<- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2015_c20160921.csv.gz", header = T, stringsAsFactors = F))
+# take a look at what got read in
+storm_events <- rbind(ten, eleven, twelve, thirteen, fourteen, fifteen)
+rm(ten, eleven, twelve, thirteen, fourteen, fifteen)
 
 # filter out events outside CONUS, HI, and AK.
 storm_events <- dplyr::filter(storm_events, STATE_FIPS < 57 & STATE_FIPS > 0)
@@ -167,6 +177,8 @@ colnames(storm_events) <- c("EVENTS.begin_date", # 52
 storm_events$EVENTS.begin_date <- as.Date(as.character(storm_events$EVENTS.begin_date), "%Y%m%d")
 storm_events$EVENTS.end_date <- as.Date(as.character(storm_events$EVENTS.end_date), "%Y%m%d")
 
+#-- filter for PRCP related events (Only using "Heavy Rain")
+storm_events_precip <- dplyr::filter(storm_events, EVENTS.type == "Heavy Rain")
 
 #-- find closest GHCND station of event and merge it in storm_events
 
@@ -180,9 +192,10 @@ temp_df <- data.frame(id = storm_events$EVENTS.ID[!is.na(storm_events$EVENTS.beg
                       longitude = storm_events$EVENTS.begin_lon[!is.na(storm_events$EVENTS.begin_lat)])
 
 # Find closest MET station near precip event
+# changed year_min = 2010 (fb)
 met_stations <- meteo_nearby_stations(lat_lon_df = temp_df,
                                       station_data = ghcnd_station_list, limit = 1, var = "PRCP",
-                                      year_min = 2015, year_max = 2015)
+                                      year_min = 2010, year_max = 2015)
 met_stations <- plyr::rbind.fill(met_stations)  # convert list of data frames into data frame
 met_stations$EVENTS.ID <- temp_df$id  # add EVENTS.ID for merging with storm_events
 
@@ -229,13 +242,13 @@ for (j in 1:length(storm_events$EVENTS.ID)) {
 
 rm(j, dd, nearest_station_index)
 
-
-#-- filter for PRCP related events
-storm_events_precip <- dplyr::filter(storm_events,
-                                     EVENTS.type == "Flash Flood" | 
-                                       EVENTS.type == "Flood" |
-                                       EVENTS.type == "Heavy Rain" |
-                                       EVENTS.type == "Debris Flow")
+## Move this to earlier in the analysis. and only filter on "Heavy Rain"
+# #-- filter for PRCP related events
+# storm_events_precip <- dplyr::filter(storm_events,
+#                                      EVENTS.type == "Flash Flood" | 
+#                                        EVENTS.type == "Flood" |
+#                                        EVENTS.type == "Heavy Rain" |
+#                                        EVENTS.type == "Debris Flow")
 
 
 #-- get observation data from ghcnd stations
@@ -288,7 +301,7 @@ for (j in 1:length(storm_events_precip$EVENTS.ID)) {
 #-- for time consuming processes
 
 # save.image("data/snapshot_2017-07-06_2330.RData")
-load("data/snapshot_2017-07-06_2330.RData")
+# load("data/snapshot_2017-07-06_2330.RData")
 
 
 # Hack job. Not sure why I can't just use dplyr::bind_rows()
@@ -339,10 +352,7 @@ storm_events_precip <- merge(storm_events_precip, station_obs,
                              by.y = c("prcp.id", "prcp.date"))
 names(storm_events_precip)[30] <- "GHCND.prcp_cat"
 
-write.csv(storm_events, "storm_events_with_obs_2015.csv")
-
-## NEXT STEPS
-## create new df with dates, station name
+# write.csv(storm_events, "storm_events_with_obs_2015.csv")
 
 ## USE get_archived_GFSX_MOS.R instead! 
 # #-- get archived forecast (MOS) from IA State MESONET
@@ -381,7 +391,7 @@ write.csv(storm_events, "storm_events_with_obs_2015.csv")
 # colnames(mos_gfs_q12) <- c("q12_1_00","q12_1_12","q12_3_00","q12_3_12")
 # storm_events_precip <- cbind(storm_events_precip, mos_gfs_q12)
 
-
+save.image("data/snapshot_2017-07-19_1434.RData") # save new snapshot (fb)
 
 
 # using the FCC API to match lat/lon to census tracts
@@ -393,11 +403,7 @@ libraries("httr","jsonlite","dplyr")
 
 options(stringsAsFactors = FALSE)
 
-## replace the below with the actual storm_events df
-# # i'm not using the actual data here. replace with actual lat/lons later!
-# storm_events <- read.csv(paste0(dirname(getwd()), "/storm_events_2015.csv"))
-# storms <- filter(storms, BEGIN_LAT != "NA")
-# storms <- head(storms, 100)
+## use lat/lon from storm_events to find census block codes
 
 # following this as an example: http://tophcito.blogspot.com/2015/11/accessing-apis-from-r-and-little-r.html#fn2
 # set up the url and parameters
@@ -405,37 +411,38 @@ options(stringsAsFactors = FALSE)
 url <- "http://data.fcc.gov/api/block/find?format=json"
 
 
-latitude <- storms$BEGIN_LAT # replace
+latitude <- storm_events_precip$EVENTS.begin_lat
 
-longitude <- storms$BEGIN_LON # replace
+longitude <- storm_events_precip$EVENTS.begin_lon 
 request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false")
 
 str(request)
 # use the names of the lists as the names for the df to make
 
-tracts <- data.frame(FIPS = rep(0, 100),
-                     County.FIPS = rep(0, 100),
-                     County.name = rep(0, 100),
-                     State.FIPS = rep(0, 100),
-                     State.code = rep(0, 100),
-                     State.name = rep(0, 100),
-                     status     = rep(0, 100),
-                     executionTime = rep(0, 100))
+#### need to rewrite this loop using for i in length or seq_along. need to read up more to find out which 
+#### is better. (fb)
 
-
-#  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
-for (i in 1:100) {
-  latitude <- storms$BEGIN_LAT[i]  # replace
-  longitude <- storms$BEGIN_LON[i]  # replace 
-  request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
-  tracts[i,] <- as.data.frame.list(request)
-}
-
-## next steps:
-## merge into storm_events df
+# tracts <- data.frame(FIPS = rep(0, 100),
+#                      County.FIPS = rep(0, 100),
+#                      County.name = rep(0, 100),
+#                      State.FIPS = rep(0, 100),
+#                      State.code = rep(0, 100),
+#                      State.name = rep(0, 100),
+#                      status     = rep(0, 100),
+#                      executionTime = rep(0, 100))
+# 
+# 
+# #  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
+# for (i in 1:100) {
+#   latitude <- storms$BEGIN_LAT[i]  # replace
+#   longitude <- storms$BEGIN_LON[i]  # replace 
+#   request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
+#   tracts[i,] <- as.data.frame.list(request)
+# }
+# 
+# ## next steps:
+## merge (only relevant vars) into storm_events_precip
 ## access census data for median income at the census block level
-## create weight for impact? 
-
 
 #-- shutdown all clusters
 #stopCluster(cl)
