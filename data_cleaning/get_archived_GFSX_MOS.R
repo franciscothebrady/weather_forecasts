@@ -48,9 +48,13 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   # locate block of MOS output that user wants in file
   block_start <- which(str_detect(mos_outputs, station_id) &
                          str_detect(mos_outputs, runtime_date))
+  if (!any(block_start)) {
+    return(NULL)
+  } else {
+    
   block_end   <- block_start +
     str_which(mos_outputs[block_start:length(mos_outputs)], "\\s{70}")[1] - 2
-  
+
   # user selected MOS output
   mos_chr <- mos_outputs[block_start:block_end]
   
@@ -86,8 +90,8 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   mos_df <- cbind.data.frame(FCDT=fc_t, mos_df)
     
   # append runtime in ymd_hms format
-  rt_t1 <- rep(runtime_dt, 15)
-  rt_t2 <- rep(runtime_hr, 15)
+  rt_t1 <- rep(paste0(runtime_year, runtime_month, runtime_day), 15)
+  rt_t2 <- rep(runtime_hour, 15)
   rt_t2 <- gsub(".$", "", rt_t2)  # remove Zs, but remember we're still in UTC/Zulu
   rt_t3 <- ymd_hms(paste(rt_t1, paste0(rt_t2, ":00:00")), tz="Zulu")
   mos_df <- cbind.data.frame(RTDT=rt_t3, mos_df)
@@ -100,4 +104,6 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   
   # final version of data frame we can use to do stuff
   return(mos_df)
+  
+  }
 }

@@ -15,7 +15,7 @@
 
 
 #-- set working directory
-#setwd("C:/Users/franc/Documents/Research/weather_forecasts")
+#setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts")
 
 
 #-- load required packages
@@ -91,19 +91,9 @@ rm(cbsa_info)
 #-- get severe weather data with damage reports from NOAA
 #-- (https://www.ncdc.noaa.gov/swdi/#Intro)
 
-# take storm events data for 2010-2015
-# https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20170718.csv.gz
-
-# take storm events data for 2010-15
-ten<- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2010_c20160223.csv.gz", header = T, stringsAsFactors = F))
-eleven<- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2011_c20160223.csv.gz", header = T, stringsAsFactors = F))
-twelve<- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2012_c20160223.csv.gz", header = T, stringsAsFactors = F))
-thirteen<- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2013_c20160223.csv.gz", header = T, stringsAsFactors = F))
-fourteen<- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2014_c20160617.csv.gz", header = T, stringsAsFactors = F))
-fifteen<- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2015_c20160921.csv.gz", header = T, stringsAsFactors = F))
-# take a look at what got read in
-storm_events <- rbind(ten, eleven, twelve, thirteen, fourteen, fifteen)
-rm(ten, eleven, twelve, thirteen, fourteen, fifteen)
+# take storm events data for 2015
+# https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz
+storm_events <- as.data.frame(read.csv("data/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz", stringsAsFactors = FALSE))
 
 # filter out events outside CONUS, HI, and AK.
 storm_events <- dplyr::filter(storm_events, STATE_FIPS < 57 & STATE_FIPS > 0)
@@ -125,12 +115,12 @@ storm_events <- dplyr::mutate(storm_events,
 
 # Convert event time from local to UTC timezone
 storm_events <- dplyr::mutate(storm_events,
-  BEGIN_TIME_UTC = BEGIN_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
-  END_TIME_UTC = END_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
-  BEGIN_DATE_UTC = ifelse(BEGIN_TIME_UTC >= 2400, ifelse(BEGIN_DATE + 1 == 20150229, 20150301, BEGIN_DATE + 1), BEGIN_DATE),
-  END_DATE_UTC = ifelse(END_TIME_UTC >= 2400, ifelse(END_DATE + 1 == 20150229, 20150301, END_DATE + 1), END_DATE),
-  BEGIN_TIME_UTC = ifelse(BEGIN_TIME_UTC >= 2400, BEGIN_TIME_UTC - 2400, BEGIN_TIME_UTC),
-  END_TIME_UTC = ifelse(END_TIME_UTC >= 2400, END_TIME_UTC - 2400, END_TIME_UTC))
+                              BEGIN_TIME_UTC = BEGIN_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
+                              END_TIME_UTC = END_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
+                              BEGIN_DATE_UTC = ifelse(BEGIN_TIME_UTC >= 2400, ifelse(BEGIN_DATE + 1 == 20150229, 20150301, BEGIN_DATE + 1), BEGIN_DATE),
+                              END_DATE_UTC = ifelse(END_TIME_UTC >= 2400, ifelse(END_DATE + 1 == 20150229, 20150301, END_DATE + 1), END_DATE),
+                              BEGIN_TIME_UTC = ifelse(BEGIN_TIME_UTC >= 2400, BEGIN_TIME_UTC - 2400, BEGIN_TIME_UTC),
+                              END_TIME_UTC = ifelse(END_TIME_UTC >= 2400, END_TIME_UTC - 2400, END_TIME_UTC))
 
 # Pad BEGIN_TIME_UTC and END_TIME_UTC with 0
 storm_events$BEGIN_TIME_UTC <- str_pad(storm_events$BEGIN_TIME_UTC, 4, pad = "0")
@@ -177,8 +167,6 @@ colnames(storm_events) <- c("EVENTS.begin_date", # 52
 storm_events$EVENTS.begin_date <- as.Date(as.character(storm_events$EVENTS.begin_date), "%Y%m%d")
 storm_events$EVENTS.end_date <- as.Date(as.character(storm_events$EVENTS.end_date), "%Y%m%d")
 
-#-- filter for PRCP related events (Only using "Heavy Rain")
-storm_events_precip <- dplyr::filter(storm_events, EVENTS.type == "Heavy Rain")
 
 #-- find closest GHCND station of event and merge it in storm_events
 
@@ -192,10 +180,9 @@ temp_df <- data.frame(id = storm_events$EVENTS.ID[!is.na(storm_events$EVENTS.beg
                       longitude = storm_events$EVENTS.begin_lon[!is.na(storm_events$EVENTS.begin_lat)])
 
 # Find closest MET station near precip event
-# changed year_min = 2010 (fb)
 met_stations <- meteo_nearby_stations(lat_lon_df = temp_df,
                                       station_data = ghcnd_station_list, limit = 1, var = "PRCP",
-                                      year_min = 2010, year_max = 2015)
+                                      year_min = 2015, year_max = 2015)
 met_stations <- plyr::rbind.fill(met_stations)  # convert list of data frames into data frame
 met_stations$EVENTS.ID <- temp_df$id  # add EVENTS.ID for merging with storm_events
 
@@ -242,13 +229,13 @@ for (j in 1:length(storm_events$EVENTS.ID)) {
 
 rm(j, dd, nearest_station_index)
 
-## Move this to earlier in the analysis. and only filter on "Heavy Rain"
-# #-- filter for PRCP related events
-# storm_events_precip <- dplyr::filter(storm_events,
-#                                      EVENTS.type == "Flash Flood" | 
-#                                        EVENTS.type == "Flood" |
-#                                        EVENTS.type == "Heavy Rain" |
-#                                        EVENTS.type == "Debris Flow")
+
+#-- filter for PRCP related events
+storm_events_precip <- dplyr::filter(storm_events,
+                                     EVENTS.type == "Flash Flood" | 
+                                       EVENTS.type == "Flood" |
+                                       EVENTS.type == "Heavy Rain" |
+                                       EVENTS.type == "Debris Flow")
 
 
 #-- get observation data from ghcnd stations
@@ -256,13 +243,21 @@ rm(j, dd, nearest_station_index)
 # Not sure if this is faster, pull each station's relevant obs, than pull
 # all data and then searching for matches. For now, let's try the "loop" approach.
 
-# sadly have to deal with poorly handled error in ghcnd_search()
+# temp_ls <- lapply(1:length(storm_events_precip$EVENTS.ID),
+#   function(j) data.frame(
+#     ghcnd_search(storm_events_precip$GHCND.ID[j], var = "PRCP",
+#                  date_min = storm_events_precip$EVENTS.begin_date[j],
+#                  date_max = storm_events_precip$EVENTS.begin_date[j]),
+#     stringsAsFactors = FALSE))
+# rm(temp_ls)
+
+# sadly have to deal with errors from ghcnd_search()
 temp_ls <- vector("list", length(storm_events_precip$EVENTS.ID))
 for (j in 1:length(storm_events_precip$EVENTS.ID)) {
   result <- tryCatch({
     data.frame(ghcnd_search(storm_events_precip$GHCND.ID[j], var = "PRCP",
-                 date_min = storm_events_precip$EVENTS.begin_date[j],
-                 date_max = storm_events_precip$EVENTS.begin_date[j]),
+                            date_min = storm_events_precip$EVENTS.begin_date[j],
+                            date_max = storm_events_precip$EVENTS.begin_date[j]),
                stringsAsFactors = FALSE)
   }, warning = function(w) {
     return(
@@ -287,21 +282,13 @@ for (j in 1:length(storm_events_precip$EVENTS.ID)) {
   })
   temp_ls[[j]] <- result
 }
-
-# temp_ls <- lapply(1:length(storm_events_precip$EVENTS.ID),
-#   function(j) data.frame(
-#     ghcnd_search(storm_events_precip$GHCND.ID[j], var = "PRCP",
-#                  date_min = storm_events_precip$EVENTS.begin_date[j],
-#                  date_max = storm_events_precip$EVENTS.begin_date[j]),
-#     stringsAsFactors = FALSE))
-# rm(temp_ls)
+rm(result)
 
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-
-# save.image("data/snapshot_2017-07-06_2330.RData")
-# load("data/snapshot_2017-07-06_2330.RData")
+#save.image("data/snapshot_2017-07-06_2330.RData")
+#load("data/snapshot_2017-07-06_2330.RData")
 
 
 # Hack job. Not sure why I can't just use dplyr::bind_rows()
@@ -317,8 +304,6 @@ station_obs$prcp.id <- as.character(station_obs$prcp.id)
 station_obs$prcp.prcp <- as.numeric(station_obs$prcp.prcp)
 station_obs$prcp.date <- as.Date(station_obs$prcp.date)
 rm(i)
-#obs_prcp <- meteo_pull_monitors(storm_events_precip$GHCND.ID, var = "PRCP",
-#                                date_min = "2015-01-01", date_max = "2015-12-31")
 
 # Remove rows with prcp.prcp as NA
 station_obs <- station_obs[!is.na(station_obs$prcp.prcp),]
@@ -350,9 +335,11 @@ station_obs <- within(station_obs, prcp.prcp[prcp.prcp < 0.01] <- 0)
 storm_events_precip <- merge(storm_events_precip, station_obs,
                              by.x = c("GHCND.ID", "EVENTS.begin_date"),
                              by.y = c("prcp.id", "prcp.date"))
-names(storm_events_precip)[30] <- "GHCND.prcp_cat"
+names(storm_events_precip)[31] <- "GHCND.prcp_cat"
 
-# write.csv(storm_events, "storm_events_with_obs_2015.csv")
+
+## NEXT STEPS
+## create new df with dates, station name
 
 ## USE get_archived_GFSX_MOS.R instead! 
 # #-- get archived forecast (MOS) from IA State MESONET
@@ -391,19 +378,201 @@ names(storm_events_precip)[30] <- "GHCND.prcp_cat"
 # colnames(mos_gfs_q12) <- c("q12_1_00","q12_1_12","q12_3_00","q12_3_12")
 # storm_events_precip <- cbind(storm_events_precip, mos_gfs_q12)
 
-save.image("data/snapshot_2017-07-19_1434.RData") # save new snapshot (fb)
+
+#-- save workspace to not have to re-create dataset when something goes wrong
+#-- for time consuming processes
+#save.image("data/snapshot_2017-07-09_1830.RData")
+#load("data/snapshot_2017-07-09_1830.RData")
 
 
+# load MOS retrival function
+source("data_cleaning/get_archived_GFSX_MOS.R")
+
+#-- beware! nasty hack job below
+
+# collect 5 day ahead forecast on Q12
+mos5day12 <- NULL
+for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
+  print(eid)
+  mos_df <- get_archived_GFSX_MOS(storm_events_precip$MOS.ICAO[eid],
+                                  format(storm_events_precip$EVENTS.begin_date[eid]-5, "%Y%m%d"),
+                                  "00Z")
+  if (is.null(mos_df)) {
+    mos5day12 <- rbind(mos5day12,
+                       cbind.data.frame(
+                         index=eid,
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         ICAO=storm_events_precip$MOS.ICAO[eid],
+                         RTDT=NA,
+                         FCDT=as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"),
+                         Q12=NA)
+    )
+  } else {
+    print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
+    mos5day12 <- rbind(mos5day12,
+                       cbind.data.frame(
+                         index=eid,
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
+                         Q12=dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q12)
+    )
+  }
+}
+
+# collect 1 day ahead forecast on Q12
+mos1day12 <- NULL
+for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
+  print(eid)
+  mos_df <- get_archived_GFSX_MOS(storm_events_precip$MOS.ICAO[eid],
+                                  format(storm_events_precip$EVENTS.begin_date[eid]-1, "%Y%m%d"),
+                                  "00Z")
+  if (is.null(mos_df)) {
+    mos1day12 <- rbind(mos1day12,
+                       cbind.data.frame(
+                         index=eid,
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         ICAO=storm_events_precip$MOS.ICAO[eid],
+                         RTDT=NA,
+                         FCDT=as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"),
+                         Q12=NA)
+    )
+  } else {
+    print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
+    mos1day12 <- rbind(mos1day12,
+                       cbind.data.frame(
+                         index=eid,
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
+                         Q12=dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q12)
+    )
+  }
+}
+
+# collect 6 day ahead forecast on Q24
+mos6day24 <- NULL
+for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
+  print(eid)
+  mos_df <- get_archived_GFSX_MOS(storm_events_precip$MOS.ICAO[eid],
+                                  format(storm_events_precip$EVENTS.begin_date[eid]-6, "%Y%m%d"),
+                                  "00Z")
+  if (is.null(mos_df)) {
+    mos6day24 <- rbind(mos6day24,
+                       cbind.data.frame(
+                         index=eid,
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         ICAO=storm_events_precip$MOS.ICAO[eid],
+                         RTDT=NA,
+                         FCDT=as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"),
+                         Q24=NA)
+    )
+  } else {
+    print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
+    mos6day24 <- rbind(mos6day24,
+                       cbind.data.frame(
+                         index=eid,
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
+                         Q24=dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q24)
+    )
+  }
+}
+
+# collect 2 day ahead forecast on Q24
+mos2day24 <- NULL
+for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
+  print(eid)
+  mos_df <- get_archived_GFSX_MOS(storm_events_precip$MOS.ICAO[eid],
+                                  format(storm_events_precip$EVENTS.begin_date[eid]-2, "%Y%m%d"),
+                                  "00Z")
+  if (is.null(mos_df)) {
+    mos2day24 <- rbind(mos2day24,
+                       cbind.data.frame(
+                         index=eid,
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         ICAO=storm_events_precip$MOS.ICAO[eid],
+                         RTDT=NA,
+                         FCDT=as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"),
+                         Q24=NA)
+    )
+  } else {
+    print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
+    mos2day24 <- rbind(mos2day24,
+                       cbind.data.frame(
+                         index=eid,
+                         EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
+                         dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
+                         Q24=dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q24)
+    )
+  }
+}
+
+rm(j, eid)
+
+#-- save workspace to not have to re-create dataset when something goes wrong
+#-- for time consuming processes
+#save.image("data/snapshot_2017-07-09_1939.RData")
+#load("data/snapshot_2017-07-09_1939.RData")
+
+
+#-- merge forecast data to storm_events_precip ID and date
+mos_q24 <- merge(mos2day24, mos6day24, by.x="index", by.y="index")
+mos_q24 <- data.frame(Q24.f2=mos_q24$Q24.x, Q24.f6=mos_q24$Q24.y)
+storm_events_precip <- cbind.data.frame(storm_events_precip, mos_q24)
+names(storm_events_precip)[32] <- "Q12.f1"
+names(storm_events_precip)[33] <- "Q12.f5"
+rm(mos_q24)
+
+#-- save workspace to not have to re-create dataset when something goes wrong
+#-- for time consuming processes
+#save.image("data/snapshot_2017-07-11_0456.RData")
+#load("data/snapshot_2017-07-11_0456.RData")
+
+storm_events_precip <- dplyr::mutate(storm_events_precip, 
+                                     judge1 = GHCND.prcp_cat - as.numeric(as.character(Q24.f2)), 
+                                     judge2 = GHCND.prcp_cat - as.numeric(as.character(Q24.f6)))
+
+#-- save workspace to not have to re-create dataset when something goes wrong
+#-- for time consuming processes
+#save.image("data/snapshot_2017-07-14_1416.RData")
+load("data/snapshot_2017-07-14_1416.RData")
+
+dplyr::summarise(storm_events_precip, 
+                 mean(judge1, na.rm = TRUE), 
+                 mean(judge2, na.rm = TRUE))
+
+t.test(abs(storm_events_precip$judge1), abs(storm_events_precip$judge2), paired = TRUE)
+
+plot(storm_events_precip$judge1)
+plot(abs(storm_events_precip$judge2))
+
+heavy.rain <- dplyr::filter(storm_events_precip, EVENTS.type == "Heavy Rain")
+heavy.rain.x <- heavy.rain$judge1
+heavy.rain.x2 <- heavy.rain$judge2
+heavy.rain.y <- heavy.rain$EVENTS.damage_value* 10^heavy.rain$EVENTS.damage_magnitude
+plot((heavy.rain.x), heavy.rain.y, ylim=c(0, 150000))
+?plot
+t.test(heavy.rain.x, heavy.rain.x2, paired = TRUE)
+
+plot(abs(storm_events_precip$judge1), (storm_events_precip$EVENTS.damage_value* 10^storm_events_precip$EVENTS.damage_magnitude))
+test <- lm((storm_events_precip$EVENTS.damage_value* 10^storm_events_precip$EVENTS.damage_magnitude) ~ abs(storm_events_precip$judge1))
+plot(test)
+summary(test)
+table(storm_events_precip$EVENTS.type)
 # using the FCC API to match lat/lon to census tracts
 # census block conversion API docs here: https://www.fcc.gov/general/census-block-conversions-api
 
-# install.packages("easypackages") this package allows you to load multiple packages at once
-library(easypackages)
-libraries("httr","jsonlite","dplyr")
-
+# install.packages("httr")
+# install.packages("jsonlite")
+library(jsonlite)
+library(httr)
 options(stringsAsFactors = FALSE)
 
-## use lat/lon from storm_events to find census block codes
+## replace the below with the actual storm_events df
+# # i'm not using the actual data here. replace with actual lat/lons later!
+# storm_events <- read.csv(paste0(dirname(getwd()), "/storm_events_2015.csv"))
+# storms <- filter(storms, BEGIN_LAT != "NA")
+# storms <- head(storms, 100)
+
 
 # following this as an example: http://tophcito.blogspot.com/2015/11/accessing-apis-from-r-and-little-r.html#fn2
 # set up the url and parameters
@@ -411,38 +580,36 @@ options(stringsAsFactors = FALSE)
 url <- "http://data.fcc.gov/api/block/find?format=json"
 
 
-latitude <- storm_events_precip$EVENTS.begin_lat
+latitude <- heavy.rain$EVENTS.begin_lat
 
-longitude <- storm_events_precip$EVENTS.begin_lon 
+longitude <- heavy.rain$EVENTS.begin_lon
+
 request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false")
 
 str(request)
 # use the names of the lists as the names for the df to make
 
-#### need to rewrite this loop using for i in length or seq_along. need to read up more to find out which 
-#### is better. (fb)
+tracts <- data.frame(FIPS = rep(0, 350),
+                     County.FIPS = rep(0, 350),
+                     County.name = rep(0, 350),
+                     State.FIPS = rep(0, 350),
+                     State.code = rep(0, 350),
+                     State.name = rep(0, 350),
+                     status     = rep(0, 350),
+                     executionTime = rep(0, 350))
 
-# tracts <- data.frame(FIPS = rep(0, 100),
-#                      County.FIPS = rep(0, 100),
-#                      County.name = rep(0, 100),
-#                      State.FIPS = rep(0, 100),
-#                      State.code = rep(0, 100),
-#                      State.name = rep(0, 100),
-#                      status     = rep(0, 100),
-#                      executionTime = rep(0, 100))
-# 
-# 
-# #  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
-# for (i in 1:100) {
-#   latitude <- storms$BEGIN_LAT[i]  # replace
-#   longitude <- storms$BEGIN_LON[i]  # replace 
-#   request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
-#   tracts[i,] <- as.data.frame.list(request)
-# }
-# 
-# ## next steps:
-## merge (only relevant vars) into storm_events_precip
+nrain <- length(heavy.rain$EVENTS.begin_lat)
+#  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
+for (i in 1:nrain) {
+  latitude <- heavy.rain$EVENTS.begin_lat[i]  
+  longitude <- heavy.rain$EVENTS.begin_lon[i]
+  request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
+  tracts[i,] <- as.data.frame.list(request)
+}
+
+tracts
+## next steps:
+## merge into storm_events df
 ## access census data for median income at the census block level
-
-#-- shutdown all clusters
-#stopCluster(cl)
+## merge in GDP/MSA on county names and 
+## create weight for impact? 
