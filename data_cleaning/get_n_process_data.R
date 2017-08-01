@@ -608,14 +608,12 @@ tracts$County.name <- toupper(tracts$County.name)
 tracts$State.name <- toupper(tracts$State.name)
 tracts$executionTime <- NULL
 tracts$status <- NULL
-
+tracts$State.FIPS <- as.integer(tracts$State.FIPS)
 # merge with storm_events_precip
-test_storm_events_precip <- inner_join(storm_events_precip, tracts, by = c("EVENTS.state" = "State.name", "EVENTS.czname" = "County.name"))
+test_storm_events_precip <- merge(storm_events_precip, tracts, by.x= c("EVENTS.state","EVENTS.czname","EVENTS.fips"), 
+                                  by.y = c("State.name","County.name","State.FIPS"))
+# ending up with a real big number and i'm not sure why :/
 
 
-
-# next steps:
-# merge into storm_events df
 # access census data for median income at the census block level
-# merge in GDP/MSA on county names and
-# create weight for impact?
+# merge in GDP/MSA on county names 
