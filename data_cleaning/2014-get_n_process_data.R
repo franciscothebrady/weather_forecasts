@@ -611,6 +611,7 @@ tracts$State.name <- toupper(tracts$State.name)
 tracts$executionTime <- NULL
 tracts$status <- NULL
 
+write.csv(storm_events_precip, "data/2014_storm_events_processed.csv")
 
 # merge with storm_events_precip
 test_storm_events_precip <- merge(storm_events_precip, tracts, by.x= c("EVENTS.state","EVENTS.czname","EVENTS.fips"), 
