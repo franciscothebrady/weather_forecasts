@@ -16,6 +16,7 @@
 
 #-- set working directory
 #setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts")
+setwd("~/weather_forecasts")
 
 
 #-- load required packages
@@ -93,7 +94,7 @@ rm(cbsa_info)
 
 # take storm events data for 2015
 # https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz
-storm_events <- as.data.frame(read.csv("data/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz", stringsAsFactors = FALSE))
+storm_events <- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2015_c20160921.csv.gz", stringsAsFactors = FALSE))
 
 # filter out events outside CONUS, HI, and AK.
 storm_events <- dplyr::filter(storm_events, STATE_FIPS < 57 & STATE_FIPS > 0)
@@ -101,20 +102,24 @@ storm_events <- dplyr::filter(storm_events, STATE_FIPS < 57 & STATE_FIPS > 0)
 # filter out episodes with missing damage reports
 storm_events <- dplyr::filter(storm_events, !(DAMAGE_PROPERTY == "") & !(DAMAGE_CROPS == ""))
 
+#-- filter for PRCP related events=="Heavy Rain"
+storm_events_precip <- dplyr::filter(storm_events, EVENT_TYPE == "Heavy Rain")
+## change all references to storm_events to storm_events_precip below this
+
 # Tidy storm_events data frame
 
 # Pad BEGIN_DAY and END_DAY with 0 before merging with
 # respective BEGIN_YEARMONTH and  END_YEARMONTH
-storm_events$BEGIN_DAY <- str_pad(storm_events$BEGIN_DAY, 2, pad = "0")
-storm_events$END_DAY <- str_pad(storm_events$END_DAY, 2, pad = "0")
+storm_events_precip$BEGIN_DAY <- str_pad(storm_events_precip$BEGIN_DAY, 2, pad = "0")
+storm_events_precip$END_DAY <- str_pad(storm_events_precip$END_DAY, 2, pad = "0")
 
 # Merge YEARMONTH and DAY and convert to numeric for next set of manipulations
-storm_events <- dplyr::mutate(storm_events,
+storm_events_precip <- dplyr::mutate(storm_events_precip,
                               BEGIN_DATE = as.numeric(paste0(BEGIN_YEARMONTH, BEGIN_DAY)),
                               END_DATE = as.numeric(paste0(END_YEARMONTH, END_DAY)))
 
 # Convert event time from local to UTC timezone
-storm_events <- dplyr::mutate(storm_events,
+storm_events_precip <- dplyr::mutate(storm_events_precip,
                               BEGIN_TIME_UTC = BEGIN_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
                               END_TIME_UTC = END_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
                               BEGIN_DATE_UTC = ifelse(BEGIN_TIME_UTC >= 2400, ifelse(BEGIN_DATE + 1 == 20150229, 20150301, BEGIN_DATE + 1), BEGIN_DATE),
@@ -123,27 +128,27 @@ storm_events <- dplyr::mutate(storm_events,
                               END_TIME_UTC = ifelse(END_TIME_UTC >= 2400, END_TIME_UTC - 2400, END_TIME_UTC))
 
 # Pad BEGIN_TIME_UTC and END_TIME_UTC with 0
-storm_events$BEGIN_TIME_UTC <- str_pad(storm_events$BEGIN_TIME_UTC, 4, pad = "0")
-storm_events$END_TIME_UTC <- str_pad(storm_events$END_TIME_UTC, 4, pad = "0")
+storm_events_precip$BEGIN_TIME_UTC <- str_pad(storm_events_precip$BEGIN_TIME_UTC, 4, pad = "0")
+storm_events_precip$END_TIME_UTC <- str_pad(storm_events_precip$END_TIME_UTC, 4, pad = "0")
 
-# Sum damages and add to storm_events data frame
+# Sum damages and add to storm_events_precip data frame
 damage_magnitude <- cbind(
-  strsplit(substr(storm_events$DAMAGE_PROPERTY, nchar(storm_events$DAMAGE_PROPERTY), nchar(storm_events$DAMAGE_PROPERTY)), ""),
-  strsplit(substr(storm_events$DAMAGE_CROPS, nchar(storm_events$DAMAGE_CROPS), nchar(storm_events$DAMAGE_CROPS)), ""))
+  strsplit(substr(storm_events_precip$DAMAGE_PROPERTY, nchar(storm_events_precip$DAMAGE_PROPERTY), nchar(storm_events_precip$DAMAGE_PROPERTY)), ""),
+  strsplit(substr(storm_events_precip$DAMAGE_CROPS, nchar(storm_events_precip$DAMAGE_CROPS), nchar(storm_events_precip$DAMAGE_CROPS)), ""))
 damage_magnitude <- ifelse(damage_magnitude == "K", 3, ifelse(damage_magnitude == "M", 6, 9))
 damage_numeric <- cbind(
-  as.numeric(strsplit(storm_events$DAMAGE_PROPERTY, "[[:alpha:]]")),
-  as.numeric(strsplit(storm_events$DAMAGE_CROPS, "[[:alpha:]]")))
+  as.numeric(strsplit(storm_events_precip$DAMAGE_PROPERTY, "[[:alpha:]]")),
+  as.numeric(strsplit(storm_events_precip$DAMAGE_CROPS, "[[:alpha:]]")))
 damage_value <- rowSums(damage_numeric * 10^damage_magnitude, na.rm = TRUE)
-storm_events$DAMAGE_VALUE <- damage_value / 1e3
-storm_events$DAMAGE_VALUE.magnitude <- rep(3, length(storm_events$DAMAGE_VALUE))
-storm_events$DAMAGE_VALUE.unit <- rep("USD", length(storm_events$DAMAGE_VALUE))
+storm_events_precip$DAMAGE_VALUE <- damage_value / 1e3
+storm_events_precip$DAMAGE_VALUE.magnitude <- rep(3, length(storm_events_precip$DAMAGE_VALUE))
+storm_events_precip$DAMAGE_VALUE.unit <- rep("USD", length(storm_events_precip$DAMAGE_VALUE))
 rm(damage_magnitude, damage_numeric, damage_value)
 
 # Rearrange columns
-names(storm_events)
-storm_events <- storm_events[, c(52,54,53,55, 8:10, 13, 17, 30:32, 45:48, 58:60)]
-colnames(storm_events) <- c("EVENTS.begin_date", # 52
+names(storm_events_precip)
+storm_events_precip <- storm_events_precip[, c(52,54,53,55, 8:10, 13, 15:17, 30:32, 45:48, 58:60)]
+colnames(storm_events_precip) <- c("EVENTS.begin_date", # 52
                             "EVENTS.begin_time_UTC", # 54
                             "EVENTS.end_date", # 53
                             "EVENTS.end_time_UTC", # 55
@@ -151,6 +156,8 @@ colnames(storm_events) <- c("EVENTS.begin_date", # 52
                             "EVENTS.state", # 9
                             "EVENTS.fips", # 10
                             "EVENTS.type", # 13
+                            "EVENTS.czfips", # 15
+                            "EVENTS.czname", # 16
                             "EVENTS.WFO", # 17
                             "EVENTS.flood_cause", # 30
                             "EVENTS.hurricane_category", # 31
@@ -164,33 +171,33 @@ colnames(storm_events) <- c("EVENTS.begin_date", # 52
                             "EVENTS.damage_unit") # 60
 
 # Convert date to Date format
-storm_events$EVENTS.begin_date <- as.Date(as.character(storm_events$EVENTS.begin_date), "%Y%m%d")
-storm_events$EVENTS.end_date <- as.Date(as.character(storm_events$EVENTS.end_date), "%Y%m%d")
+storm_events_precip$EVENTS.begin_date <- as.Date(as.character(storm_events_precip$EVENTS.begin_date), "%Y%m%d")
+storm_events_precip$EVENTS.end_date <- as.Date(as.character(storm_events_precip$EVENTS.end_date), "%Y%m%d")
 
 
-#-- find closest GHCND station of event and merge it in storm_events
+#-- find closest GHCND station of event and merge it in storm_events_precip
 
 # Get list of GHCND stations
 ghcnd_station_list <- ghcnd_stations()
 
 # Create temporary data frame formatted for meteo_nearby_stations()
 # filtering out events without geo location
-temp_df <- data.frame(id = storm_events$EVENTS.ID[!is.na(storm_events$EVENTS.begin_lat)],
-                      latitude = storm_events$EVENTS.begin_lat[!is.na(storm_events$EVENTS.begin_lat)],
-                      longitude = storm_events$EVENTS.begin_lon[!is.na(storm_events$EVENTS.begin_lat)])
+temp_df <- data.frame(id = storm_events_precip$EVENTS.ID[!is.na(storm_events_precip$EVENTS.begin_lat)],
+                      latitude = storm_events_precip$EVENTS.begin_lat[!is.na(storm_events_precip$EVENTS.begin_lat)],
+                      longitude = storm_events_precip$EVENTS.begin_lon[!is.na(storm_events_precip$EVENTS.begin_lat)])
 
 # Find closest MET station near precip event
 met_stations <- meteo_nearby_stations(lat_lon_df = temp_df,
                                       station_data = ghcnd_station_list, limit = 1, var = "PRCP",
                                       year_min = 2015, year_max = 2015)
 met_stations <- plyr::rbind.fill(met_stations)  # convert list of data frames into data frame
-met_stations$EVENTS.ID <- temp_df$id  # add EVENTS.ID for merging with storm_events
+met_stations$EVENTS.ID <- temp_df$id  # add EVENTS.ID for merging with storm_events_precip
 
 colnames(met_stations) <- c("GHCND.ID","GHCND.name","GHCND.lat","GHCND.lon","GHCND.dist_from_event.km","EVENTS.ID")
 rm(temp_df)
 
-# Merge MET stations into storm_events
-storm_events <- merge(storm_events, met_stations, by = "EVENTS.ID")
+# Merge MET stations into storm_events_precip
+storm_events_precip <- merge(storm_events_precip, met_stations, by = "EVENTS.ID")
 
 
 #-- get weather stations with MOS runs
@@ -202,40 +209,32 @@ storm_events <- merge(storm_events, met_stations, by = "EVENTS.ID")
 mos_stations <- read.csv("data/mos_stations.csv", stringsAsFactors = FALSE)
 
 
-#-- find nearest MOS station to event and merge in storm_events
+#-- find nearest MOS station to event and merge in storm_events_precip
 
-storm_events$MOS.ICAO <- rep(0, length(storm_events$EVENTS.ID))
-storm_events$MOS.name <- rep(0, length(storm_events$EVENTS.ID))
-storm_events$MOS.lat <- rep(0, length(storm_events$EVENTS.ID))
-storm_events$MOS.lon <- rep(0, length(storm_events$EVENTS.ID))
-storm_events$MOS.st <- rep(0, length(storm_events$EVENTS.ID))
-storm_events$MOS.dist_from_event.km <- rep(0, length(storm_events$EVENTS.ID))
+storm_events_precip$MOS.ICAO <- rep(0, length(storm_events_precip$EVENTS.ID))
+storm_events_precip$MOS.name <- rep(0, length(storm_events_precip$EVENTS.ID))
+storm_events_precip$MOS.lat <- rep(0, length(storm_events_precip$EVENTS.ID))
+storm_events_precip$MOS.lon <- rep(0, length(storm_events_precip$EVENTS.ID))
+storm_events_precip$MOS.st <- rep(0, length(storm_events_precip$EVENTS.ID))
+storm_events_precip$MOS.dist_from_event.km <- rep(0, length(storm_events_precip$EVENTS.ID))
 
-for (j in 1:length(storm_events$EVENTS.ID)) {
+for (j in 1:length(storm_events_precip$EVENTS.ID)) {
   
-  dd <- distm(matrix(c(storm_events$EVENTS.begin_lon[j], storm_events$EVENTS.begin_lat[j]), ncol = 2),
+  dd <- distm(matrix(c(storm_events_precip$EVENTS.begin_lon[j], storm_events_precip$EVENTS.begin_lat[j]), ncol = 2),
               matrix(c(mos_stations$LON, mos_stations$LAT), ncol = 2),
               fun = distHaversine)  # returns distances in meters
   
   nearest_station_index <- which.min(dd)
   
-  storm_events$MOS.ICAO[j] <- mos_stations$ICAO[nearest_station_index]
-  storm_events$MOS.name[j] <- mos_stations$NAME[nearest_station_index]
-  storm_events$MOS.lat[j] <- mos_stations$LAT[nearest_station_index]
-  storm_events$MOS.lon[j] <- mos_stations$LON[nearest_station_index]
-  storm_events$MOS.st[j] <- mos_stations$ST[nearest_station_index]
-  storm_events$MOS.dist_from_event.km[j] <- dd[nearest_station_index]/1e3  # convert to km
+  storm_events_precip$MOS.ICAO[j] <- mos_stations$ICAO[nearest_station_index]
+  storm_events_precip$MOS.name[j] <- mos_stations$NAME[nearest_station_index]
+  storm_events_precip$MOS.lat[j] <- mos_stations$LAT[nearest_station_index]
+  storm_events_precip$MOS.lon[j] <- mos_stations$LON[nearest_station_index]
+  storm_events_precip$MOS.st[j] <- mos_stations$ST[nearest_station_index]
+  storm_events_precip$MOS.dist_from_event.km[j] <- dd[nearest_station_index]/1e3  # convert to km
 }
 
 rm(j, dd, nearest_station_index)
-
-
-#-- filter for PRCP related events
-storm_events_precip <- dplyr::filter(storm_events,
-                                     EVENTS.type == "Flash Flood" | 
-                                       EVENTS.type == "Flood" |
-                                       EVENTS.type == "Heavy Rain" |
-                                       EVENTS.type == "Debris Flow")
 
 
 #-- get observation data from ghcnd stations
@@ -335,11 +334,9 @@ station_obs <- within(station_obs, prcp.prcp[prcp.prcp < 0.01] <- 0)
 storm_events_precip <- merge(storm_events_precip, station_obs,
                              by.x = c("GHCND.ID", "EVENTS.begin_date"),
                              by.y = c("prcp.id", "prcp.date"))
-names(storm_events_precip)[31] <- "GHCND.prcp_cat"
+# new position (fb)
+names(storm_events_precip)[33] <- "GHCND.prcp_cat"
 
-
-## NEXT STEPS
-## create new df with dates, station name
 
 ## USE get_archived_GFSX_MOS.R instead! 
 # #-- get archived forecast (MOS) from IA State MESONET
@@ -515,11 +512,14 @@ rm(j, eid)
 
 
 #-- merge forecast data to storm_events_precip ID and date
+save.image("data/snapshot_2017-07-26-0023.Rdata")
+rm(ghcnd_station_list, storm_events)
+###
 mos_q24 <- merge(mos2day24, mos6day24, by.x="index", by.y="index")
 mos_q24 <- data.frame(Q24.f2=mos_q24$Q24.x, Q24.f6=mos_q24$Q24.y)
 storm_events_precip <- cbind.data.frame(storm_events_precip, mos_q24)
-names(storm_events_precip)[32] <- "Q12.f1"
-names(storm_events_precip)[33] <- "Q12.f5"
+names(storm_events_precip)[34] <- "Q12.f1"
+names(storm_events_precip)[35] <- "Q12.f5"
 rm(mos_q24)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
@@ -534,7 +534,7 @@ storm_events_precip <- dplyr::mutate(storm_events_precip,
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
 #save.image("data/snapshot_2017-07-14_1416.RData")
-load("data/snapshot_2017-07-14_1416.RData")
+# load("data/snapshot_2017-07-14_1416.RData")
 
 dplyr::summarise(storm_events_precip, 
                  mean(judge1, na.rm = TRUE), 
@@ -545,19 +545,20 @@ t.test(abs(storm_events_precip$judge1), abs(storm_events_precip$judge2), paired 
 plot(storm_events_precip$judge1)
 plot(abs(storm_events_precip$judge2))
 
-heavy.rain <- dplyr::filter(storm_events_precip, EVENTS.type == "Heavy Rain")
-heavy.rain.x <- heavy.rain$judge1
-heavy.rain.x2 <- heavy.rain$judge2
-heavy.rain.y <- heavy.rain$EVENTS.damage_value* 10^heavy.rain$EVENTS.damage_magnitude
-plot((heavy.rain.x), heavy.rain.y, ylim=c(0, 150000))
-?plot
-t.test(heavy.rain.x, heavy.rain.x2, paired = TRUE)
+# heavy.rain <- dplyr::filter(storm_events_precip, EVENTS.type == "Heavy Rain")
+# heavy.rain.x <- heavy.rain$judge1
+# heavy.rain.x2 <- heavy.rain$judge2
+# heavy.rain.y <- heavy.rain$EVENTS.damage_value* 10^heavy.rain$EVENTS.damage_magnitude
+# plot((heavy.rain.x), heavy.rain.y, ylim=c(0, 150000))
+# ?plot
+# t.test(heavy.rain.x, heavy.rain.x2, paired = TRUE)
+# 
+# plot(abs(storm_events_precip$judge1), (storm_events_precip$EVENTS.damage_value* 10^storm_events_precip$EVENTS.damage_magnitude))
+# test <- lm((storm_events_precip$EVENTS.damage_value* 10^storm_events_precip$EVENTS.damage_magnitude) ~ abs(storm_events_precip$judge1))
+# plot(test)
+# summary(test)
+# table(storm_events_precip$EVENTS.type)
 
-plot(abs(storm_events_precip$judge1), (storm_events_precip$EVENTS.damage_value* 10^storm_events_precip$EVENTS.damage_magnitude))
-test <- lm((storm_events_precip$EVENTS.damage_value* 10^storm_events_precip$EVENTS.damage_magnitude) ~ abs(storm_events_precip$judge1))
-plot(test)
-summary(test)
-table(storm_events_precip$EVENTS.type)
 # using the FCC API to match lat/lon to census tracts
 # census block conversion API docs here: https://www.fcc.gov/general/census-block-conversions-api
 
@@ -567,12 +568,6 @@ library(jsonlite)
 library(httr)
 options(stringsAsFactors = FALSE)
 
-## replace the below with the actual storm_events df
-# # i'm not using the actual data here. replace with actual lat/lons later!
-# storm_events <- read.csv(paste0(dirname(getwd()), "/storm_events_2015.csv"))
-# storms <- filter(storms, BEGIN_LAT != "NA")
-# storms <- head(storms, 100)
-
 
 # following this as an example: http://tophcito.blogspot.com/2015/11/accessing-apis-from-r-and-little-r.html#fn2
 # set up the url and parameters
@@ -580,36 +575,45 @@ options(stringsAsFactors = FALSE)
 url <- "http://data.fcc.gov/api/block/find?format=json"
 
 
-latitude <- heavy.rain$EVENTS.begin_lat
+latitude <- storm_events_precip$EVENTS.begin_lat
 
-longitude <- heavy.rain$EVENTS.begin_lon
+longitude <- storm_events_precip$EVENTS.begin_lon
 
 request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false")
 
 str(request)
 # use the names of the lists as the names for the df to make
 
-tracts <- data.frame(FIPS = rep(0, 350),
-                     County.FIPS = rep(0, 350),
-                     County.name = rep(0, 350),
-                     State.FIPS = rep(0, 350),
-                     State.code = rep(0, 350),
-                     State.name = rep(0, 350),
-                     status     = rep(0, 350),
-                     executionTime = rep(0, 350))
+tracts <- data.frame(FIPS = rep(0, 489),
+                     County.FIPS = rep(0, 489),
+                     County.name = rep(0, 489),
+                     State.FIPS = rep(0, 489),
+                     State.code = rep(0, 489),
+                     State.name = rep(0, 489),
+                     status     = rep(0, 489),
+                     executionTime = rep(0, 489))
 
-nrain <- length(heavy.rain$EVENTS.begin_lat)
+nrain <- length(storm_events_precip$EVENTS.begin_lat)
 #  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
 for (i in 1:nrain) {
-  latitude <- heavy.rain$EVENTS.begin_lat[i]  
-  longitude <- heavy.rain$EVENTS.begin_lon[i]
+  latitude <- storm_events_precip$EVENTS.begin_lat[i]
+  longitude <- storm_events_precip$EVENTS.begin_lon[i]
   request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
   tracts[i,] <- as.data.frame.list(request)
 }
 
 tracts
-## next steps:
-## merge into storm_events df
-## access census data for median income at the census block level
-## merge in GDP/MSA on county names and 
-## create weight for impact? 
+# formatting tracts df to merge with storm_events_precip
+tracts$County.name <- toupper(tracts$County.name)
+tracts$State.name <- toupper(tracts$State.name)
+tracts$executionTime <- NULL
+tracts$status <- NULL
+tracts$State.FIPS <- as.integer(tracts$State.FIPS)
+# merge with storm_events_precip
+test_storm_events_precip <- merge(storm_events_precip, tracts, by.x= c("EVENTS.state","EVENTS.czname","EVENTS.fips"), 
+                                  by.y = c("State.name","County.name","State.FIPS"))
+# ending up with a real big number and i'm not sure why :/
+
+
+# access census data for median income at the census block level
+# merge in GDP/MSA on county names 
