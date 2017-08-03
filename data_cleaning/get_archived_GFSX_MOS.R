@@ -26,19 +26,29 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   runtime_hour  <- str_to_lower(ui_runtime_hour)
   
   # check if raw archived MOS file is already on local disk
-  mos_file <- paste0("mex", runtime_year, runtime_month, ".t", runtime_hour, ".gz")
-  local_mos_file <- paste0("data/", mos_file)
-  if (!file.exists(local_mos_file)) {  # if file does not exist get it!
+  mos_file_gz <- paste0("mex", runtime_year, runtime_month, ".t", runtime_hour, ".gz")
+  mos_file_Z <- paste0("mex", runtime_year, runtime_month, ".t", runtime_hour, ".Z")
+  local_mos_file_gz <- paste0("data/", mos_file_gz)
+  local_mos_file_Z <- paste0("data/", mos_file_Z)
+  if (!(file.exists(local_mos_file_gz) && file.exists(local_mos_file_Z))) {  # if file does not exist get it!
     # create directory to save downloaded file
     dir.create("data", showWarnings = FALSE)
     # get raw archived MOS file
     base_url <- "http://www.mdl.nws.noaa.gov/~mos/archives/mrfmex/"
-    download_url <- paste0(base_url, mos_file)
-    download.file(download_url, local_mos_file)
+    download_url_gz <- paste0(base_url, mos_file_gz)
+    download_url_Z <- paste0(base_url, mos_file_Z)
+    status <- download.file(download_url, method = "wget", local_mos_file_gz)
+    if (status ~= 0) { # means .gz version does not exist, assume .Z exists
+      download.file(download_url, local_mos_file_Z)
+    }
   }
   
   # read mos file into memory
-  mos_outputs <- read_lines(gzfile(local_mos_file), skip = 2)
+  if (status == 0) {
+    mos_outputs <- read_lines(gzfile(local_mos_file_gz), skip = 2)
+  } else
+    mos_outputs <- read_lines(uncompress(local_mos_file_Z), skip = 2)
+  }
   
   # reformat user input of runtime date
   runtime_date <- paste0(str_replace(runtime_month, "^0+(?=[1-9])", ""), "/",
