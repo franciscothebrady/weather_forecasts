@@ -38,7 +38,7 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
     download_url_gz <- paste0(base_url, mos_file_gz)
     download_url_Z <- paste0(base_url, mos_file_Z)
     status <- download.file(download_url, method = "wget", local_mos_file_gz)
-    if (status ~= 0) { # means .gz version does not exist, assume .Z exists
+    if (status != 0) { # means .gz version does not exist, assume .Z exists
       download.file(download_url, local_mos_file_Z)
     }
   }
