@@ -1,5 +1,5 @@
 ##
-## Get and process data for 2011
+## Get and process data for 2015
 ##   Evaluating Economic Benefits of Short-Range (6-84 hours)
 ##   and Extended Forecasts (12-192 hours)
 ##
@@ -39,7 +39,7 @@ noaakey <- "LHfBxDvUCXUreWbNRDPCGEjYfaBLfLGh"
 beakey <- "AF498701-0543-490E-B9B3-B850D6166872"
 
 
-#-- get real GDP by MSA for 2011
+#-- get real GDP by MSA for 2015
 #-- (https://www.bea.gov/API/bea_web_service_api_user_guide.htm)
 beaSpecs <- list(
   "UserID" = beakey,
@@ -48,7 +48,7 @@ beaSpecs <- list(
   "Component" = "RGDP_MAN",
   "IndustryId" = "1",
   "GeoFIPS" = "MSA",
-  "Year" = "2011",
+  "Year" = "2015",
   "ResultFormat" = "json"
 )
 gdp_msa <- beaGet(beaSpecs, asWide = FALSE)
@@ -92,9 +92,9 @@ rm(cbsa_info)
 #-- get severe weather data with damage reports from NOAA
 #-- (https://www.ncdc.noaa.gov/swdi/#Intro)
 
-# take storm events data for 2011
+# take storm events data for 2015
 # https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz
-storm_events <- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2011_c20160223.csv.gz", stringsAsFactors = FALSE))
+storm_events <- as.data.frame(read.csv("data/StormEvents_details-ftp_v1.0_d2015_c20160921.csv.gz", stringsAsFactors = FALSE))
 
 # filter out events outside CONUS, HI, and AK.
 storm_events <- dplyr::filter(storm_events, STATE_FIPS < 57 & STATE_FIPS > 0)
@@ -189,7 +189,7 @@ temp_df <- data.frame(id = storm_events_precip$EVENTS.ID[!is.na(storm_events_pre
 # Find closest MET station near precip event
 met_stations <- meteo_nearby_stations(lat_lon_df = temp_df,
                                       station_data = ghcnd_station_list, limit = 1, var = "PRCP",
-                                      year_min = 2011, year_max = 2011)
+                                      year_min = 2015, year_max = 2015)
 met_stations <- plyr::rbind.fill(met_stations)  # convert list of data frames into data frame
 met_stations$EVENTS.ID <- temp_df$id  # add EVENTS.ID for merging with storm_events_precip
 
@@ -513,7 +513,8 @@ rm(j, eid)
 
 #-- merge forecast data to storm_events_precip ID and date
 # save.image("data/snapshot_2017-07-26-0023.Rdata")
-save.image("data/2011_snapshot_2017-8-1-2315.RData")
+#save.image("data/2015_snapshot_2017-8-1-1630.RData")
+
 rm(ghcnd_station_list, storm_events)
 ###
 mos_q24 <- merge(mos2day24, mos6day24, by.x="index", by.y="index")
@@ -525,27 +526,30 @@ rm(mos_q24)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-#save.image("data/snapshot_2017-07-11_0456.RData")
+save.image("data/2015-snapshot_2017-08-16_1108.RData")
 #load("data/snapshot_2017-07-11_0456.RData")
 
-storm_events_precip <- dplyr::mutate(storm_events_precip, 
-                                     judge1 = GHCND.prcp_cat - as.numeric(as.character(Q24.f2)), 
-                                     judge2 = GHCND.prcp_cat - as.numeric(as.character(Q24.f6)))
-
+### move to analysis script
+# storm_events_precip <- dplyr::mutate(storm_events_precip, 
+#                                      judge1 = GHCND.prcp_cat - as.numeric(as.character(Q24.f2)), 
+#                                      judge2 = GHCND.prcp_cat - as.numeric(as.character(Q24.f6)))
+# 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
 #save.image("data/snapshot_2017-07-14_1416.RData")
 # load("data/snapshot_2017-07-14_1416.RData")
 
-dplyr::summarise(storm_events_precip, 
-                 mean(judge1, na.rm = TRUE), 
-                 mean(judge2, na.rm = TRUE))
+### move this to analysis script
+# dplyr::summarise(storm_events_precip, 
+#                  mean(judge1, na.rm = TRUE), 
+#                  mean(judge2, na.rm = TRUE))
+# 
+# t.test(abs(storm_events_precip$judge1), abs(storm_events_precip$judge2), paired = TRUE)
+# 
+# plot(storm_events_precip$judge1)
+# plot(abs(storm_events_precip$judge2))
 
-t.test(abs(storm_events_precip$judge1), abs(storm_events_precip$judge2), paired = TRUE)
-
-plot(storm_events_precip$judge1)
-plot(abs(storm_events_precip$judge2))
-
+### move this to analysis script
 # heavy.rain <- dplyr::filter(storm_events_precip, EVENTS.type == "Heavy Rain")
 # heavy.rain.x <- heavy.rain$judge1
 # heavy.rain.x2 <- heavy.rain$judge2
@@ -560,62 +564,56 @@ plot(abs(storm_events_precip$judge2))
 # summary(test)
 # table(storm_events_precip$EVENTS.type)
 
+### move this to final data cleaning script
 # using the FCC API to match lat/lon to census tracts
 # census block conversion API docs here: https://www.fcc.gov/general/census-block-conversions-api
+# 
+# # install.packages("httr")
+# # install.packages("jsonlite")
+# library(jsonlite)
+# library(httr)
+# options(stringsAsFactors = FALSE)
+# 
+# 
+# # following this as an example: http://tophcito.blogspot.com/2015/11/accessing-apis-from-r-and-little-r.html#fn2
+# # set up the url and parameters
+# 
+# url <- "http://data.fcc.gov/api/block/find?format=json"
+# 
+# 
+# latitude <- storm_events_precip$EVENTS.begin_lat
+# 
+# longitude <- storm_events_precip$EVENTS.begin_lon
+# 
+# request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false")
+# 
+# str(request)
+# 
+# 
+# # change to 678 for 2015 events
+# tracts <- data.frame(FIPS = rep(0, 678),
+#                      County.FIPS = rep(0, 678),
+#                      County.name = rep(0, 678),
+#                      State.FIPS = rep(0, 678),
+#                      State.code = rep(0, 678),
+#                      State.name = rep(0, 678),
+#                      status     = rep(0, 678),
+#                      executionTime = rep(0, 678))
+# 
+# nrain <- length(storm_events_precip$EVENTS.begin_lat)
+# #  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
+# for (i in 1:nrain) {
+#   latitude <- storm_events_precip$EVENTS.begin_lat[i]
+#   longitude <- storm_events_precip$EVENTS.begin_lon[i]
+#   request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
+#   tracts[i,] <- as.data.frame.list(request)
+# }
+# 
+# tracts
+# # formatting tracts df to merge with storm_events_precip
+# tracts$County.name <- toupper(tracts$County.name)
+# tracts$State.name <- toupper(tracts$State.name)
+# tracts$executionTime <- NULL
+# tracts$status <- NULL
 
-# install.packages("httr")
-# install.packages("jsonlite")
-library(jsonlite)
-library(httr)
-options(stringsAsFactors = FALSE)
-
-
-# following this as an example: http://tophcito.blogspot.com/2015/11/accessing-apis-from-r-and-little-r.html#fn2
-# set up the url and parameters
-
-url <- "http://data.fcc.gov/api/block/find?format=json"
-
-
-latitude <- storm_events_precip$EVENTS.begin_lat
-
-longitude <- storm_events_precip$EVENTS.begin_lon
-
-request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false")
-
-str(request)
-
-
-# change to 453 for 2011 events
-tracts <- data.frame(FIPS = rep(0, 453),
-                     County.FIPS = rep(0, 453),
-                     County.name = rep(0, 453),
-                     State.FIPS = rep(0, 453),
-                     State.code = rep(0, 453),
-                     State.name = rep(0, 453),
-                     status     = rep(0, 453),
-                     executionTime = rep(0, 453))
-
-nrain <- length(storm_events_precip$EVENTS.begin_lat)
-#  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
-for (i in 1:nrain) {
-  latitude <- storm_events_precip$EVENTS.begin_lat[i]
-  longitude <- storm_events_precip$EVENTS.begin_lon[i]
-  request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
-  tracts[i,] <- as.data.frame.list(request)
-}
-
-tracts
-# formatting tracts df to merge with storm_events_precip
-tracts$County.name <- toupper(tracts$County.name)
-tracts$State.name <- toupper(tracts$State.name)
-tracts$executionTime <- NULL
-tracts$status <- NULL
-
-write.csv(storm_events_precip, "data/2011_storm_events_processed.csv")
-
-# cbind/ (or data.frame.cbind) tracts to storm events and be done with it.
-# also merge in GDP after
-
-
-# access census data for median income at the census block level
-# merge in GDP/MSA on county names 
+write.csv(storm_events_precip, "data/2015_storm_events_processed.csv")
