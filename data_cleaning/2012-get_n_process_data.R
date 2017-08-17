@@ -21,7 +21,7 @@ setwd("~/weather_forecasts")
 
 #-- load required packages
 library(checkpoint)
-checkpoint("2017-07-04")
+#checkpoint("2017-07-04")
 library(plyr)
 library(dtplyr)
 library(stringr)
@@ -94,7 +94,7 @@ rm(cbsa_info)
 
 # take storm events data for 2012
 # https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz
-storm_events <- as.data.frame(read.csv("StormEvents_details-ftp_v1.0_d2012_c20160223.csv.gz", stringsAsFactors = FALSE))
+storm_events <- as.data.frame(read.csv("data/StormEvents_details-ftp_v1.0_d2012_c20160223.csv.gz", stringsAsFactors = FALSE))
 
 # filter out events outside CONUS, HI, and AK.
 storm_events <- dplyr::filter(storm_events, STATE_FIPS < 57 & STATE_FIPS > 0)
@@ -507,7 +507,7 @@ rm(j, eid)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-#save.image("data/snapshot_2017-07-09_1939.RData")
+save.image("data/2015-snapshot_2017-08-16_2001.RData")
 #load("data/snapshot_2017-07-09_1939.RData")
 
 
