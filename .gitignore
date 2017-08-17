@@ -6,3 +6,4 @@ data/*.gz
 weather_forecasts.Rproj
 *.gz
 shapefile
+mos_files/*.z
