@@ -21,7 +21,7 @@ setwd("~/weather_forecasts")
 
 #-- load required packages
 library(checkpoint)
-checkpoint("2017-07-04")
+# checkpoint("2017-07-04")
 library(plyr)
 library(dtplyr)
 library(stringr)
@@ -383,7 +383,7 @@ names(storm_events_precip)[33] <- "GHCND.prcp_cat"
 
 
 # load MOS retrival function
-source("data_cleaning/get_archived_GFSX_MOS.R")
+source("data_cleaning/get_archived_GFSX_MOS_GZ.R")
 
 #-- beware! nasty hack job below
 
@@ -513,7 +513,7 @@ rm(j, eid)
 
 #-- merge forecast data to storm_events_precip ID and date
 # save.image("data/snapshot_2017-07-26-0023.Rdata")
-#save.image("data/2015_snapshot_2017-8-1-1630.RData")
+save.image("data/2015_snapshot_2017-8-21-1730.RData")
 
 rm(ghcnd_station_list, storm_events)
 ###
@@ -526,7 +526,7 @@ rm(mos_q24)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-save.image("data/2015-snapshot_2017-08-16_1108.RData")
+#save.image("data/2015-snapshot_2017-08-16_1108.RData")
 #load("data/snapshot_2017-07-11_0456.RData")
 
 ### move to analysis script
