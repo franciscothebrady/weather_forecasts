@@ -560,64 +560,64 @@ plot(abs(storm_events_precip$judge2))
 # summary(test)
 # table(storm_events_precip$EVENTS.type)
 
-# using the FCC API to match lat/lon to census tracts
-# census block conversion API docs here: https://www.fcc.gov/general/census-block-conversions-api
-
-# install.packages("httr")
-# install.packages("jsonlite")
-library(jsonlite)
-library(httr)
-options(stringsAsFactors = FALSE)
-
-
-# following this as an example: http://tophcito.blogspot.com/2015/11/accessing-apis-from-r-and-little-r.html#fn2
-# set up the url and parameters
-
-url <- "http://data.fcc.gov/api/block/find?format=json"
-
-
-latitude <- storm_events_precip$EVENTS.begin_lat
-
-longitude <- storm_events_precip$EVENTS.begin_lon
-
-request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false")
-
-str(request)
-
-
-# change to 333 for 2012 events
-tracts <- data.frame(FIPS = rep(0, 333),
-                     County.FIPS = rep(0, 333),
-                     County.name = rep(0, 333),
-                     State.FIPS = rep(0, 333),
-                     State.code = rep(0, 333),
-                     State.name = rep(0, 333),
-                     status     = rep(0, 333),
-                     executionTime = rep(0, 333))
-
-nrain <- length(storm_events_precip$EVENTS.begin_lat)
-#  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
-for (i in 1:nrain) {
-  latitude <- storm_events_precip$EVENTS.begin_lat[i]
-  longitude <- storm_events_precip$EVENTS.begin_lon[i]
-  request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
-  tracts[i,] <- as.data.frame.list(request)
-}
-
-tracts
-# formatting tracts df to merge with storm_events_precip
-tracts$County.name <- toupper(tracts$County.name)
-tracts$State.name <- toupper(tracts$State.name)
-tracts$executionTime <- NULL
-tracts$status <- NULL
-
-write.csv(storm_events_precip, "data/2012_storm_events_processed.csv")
-
-# merge with storm_events_precip
-test_storm_events_precip <- merge(storm_events_precip, tracts, by.x= c("EVENTS.state","EVENTS.czname","EVENTS.fips"), 
-                                  by.y = c("State.name","County.name","State.FIPS"))
-# ending up with a real big number and i'm not sure why :/
-
-
-# access census data for median income at the census block level
-# merge in GDP/MSA on county names 
+# # using the FCC API to match lat/lon to census tracts
+# # census block conversion API docs here: https://www.fcc.gov/general/census-block-conversions-api
+# 
+# # install.packages("httr")
+# # install.packages("jsonlite")
+# library(jsonlite)
+# library(httr)
+# options(stringsAsFactors = FALSE)
+# 
+# 
+# # following this as an example: http://tophcito.blogspot.com/2015/11/accessing-apis-from-r-and-little-r.html#fn2
+# # set up the url and parameters
+# 
+# url <- "http://data.fcc.gov/api/block/find?format=json"
+# 
+# 
+# latitude <- storm_events_precip$EVENTS.begin_lat
+# 
+# longitude <- storm_events_precip$EVENTS.begin_lon
+# 
+# request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false")
+# 
+# str(request)
+# 
+# 
+# # change to 333 for 2012 events
+# tracts <- data.frame(FIPS = rep(0, 333),
+#                      County.FIPS = rep(0, 333),
+#                      County.name = rep(0, 333),
+#                      State.FIPS = rep(0, 333),
+#                      State.code = rep(0, 333),
+#                      State.name = rep(0, 333),
+#                      status     = rep(0, 333),
+#                      executionTime = rep(0, 333))
+# 
+# nrain <- length(storm_events_precip$EVENTS.begin_lat)
+# #  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
+# for (i in 1:nrain) {
+#   latitude <- storm_events_precip$EVENTS.begin_lat[i]
+#   longitude <- storm_events_precip$EVENTS.begin_lon[i]
+#   request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
+#   tracts[i,] <- as.data.frame.list(request)
+# }
+# 
+# tracts
+# # formatting tracts df to merge with storm_events_precip
+# tracts$County.name <- toupper(tracts$County.name)
+# tracts$State.name <- toupper(tracts$State.name)
+# tracts$executionTime <- NULL
+# tracts$status <- NULL
+# 
+# write.csv(storm_events_precip, "data/2012_storm_events_processed.csv")
+# 
+# # merge with storm_events_precip
+# test_storm_events_precip <- merge(storm_events_precip, tracts, by.x= c("EVENTS.state","EVENTS.czname","EVENTS.fips"), 
+#                                   by.y = c("State.name","County.name","State.FIPS"))
+# # ending up with a real big number and i'm not sure why :/
+# 
+# 
+# # access census data for median income at the census block level
+# # merge in GDP/MSA on county names 
