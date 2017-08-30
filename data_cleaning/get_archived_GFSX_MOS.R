@@ -20,9 +20,9 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   
   source("data_cleaning/uncompress.R")
   
-  ui_station_id <- "KDEN"
-  ui_runtime_date <- "20110523"
-  ui_runtime_hour <- "12Z"
+  #ui_station_id <- "KDEN"
+  #ui_runtime_date <- "20110523"
+  #ui_runtime_hour <- "12Z"
   
   # parse input parameters
   station_id    <- str_to_upper(ui_station_id)
