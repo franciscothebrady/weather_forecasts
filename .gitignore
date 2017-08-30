@@ -2,8 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+*.Rproj
 data/*.gz
-weather_forecasts.Rproj
-*.gz
-shapefile
-mos_files/*.z
+data/*.Z
