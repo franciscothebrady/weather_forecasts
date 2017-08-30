@@ -18,6 +18,12 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   require(readr)
   require(lubridate)
   
+  source("data_cleaning/uncompress.R")
+  
+  #ui_station_id <- "KDEN"
+  #ui_runtime_date <- "20110523"
+  #ui_runtime_hour <- "12Z"
+  
   # parse input parameters
   station_id    <- str_to_upper(ui_station_id)
   runtime_year  <- str_sub(ui_runtime_date, 1, 4)
@@ -30,24 +36,30 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   mos_file_Z <- paste0("mex", runtime_year, runtime_month, ".t", runtime_hour, ".Z")
   local_mos_file_gz <- paste0("data/", mos_file_gz)
   local_mos_file_Z <- paste0("data/", mos_file_Z)
-  if (!(file.exists(local_mos_file_gz) && file.exists(local_mos_file_Z))) {  # if file does not exist get it!
+  status <- 0 # initialize download file status
+  if (!(file.exists(local_mos_file_gz))) {
     # create directory to save downloaded file
     dir.create("data", showWarnings = FALSE)
     # get raw archived MOS file
     base_url <- "http://www.mdl.nws.noaa.gov/~mos/archives/mrfmex/"
     download_url_gz <- paste0(base_url, mos_file_gz)
     download_url_Z <- paste0(base_url, mos_file_Z)
-    status <- download.file(download_url, method = "wget", local_mos_file_gz)
-    if (status != 0) { # means .gz version does not exist, assume .Z exists
-      download.file(download_url, local_mos_file_Z)
+    status <- tryCatch(download.file(download_url_gz, local_mos_file_gz, mode = "wb"),
+                       error = function(e) 1)
+    if (status == 1) { # means .gz version does not exist, assume .Z exists
+      download.file(download_url_Z, local_mos_file_Z, mode = "wb")
     }
   }
   
   # read mos file into memory
   if (status == 0) {
     mos_outputs <- read_lines(gzfile(local_mos_file_gz), skip = 2)
-  } else
-    mos_outputs <- read_lines(uncompress(local_mos_file_Z), skip = 2)
+    unlink(local_mos_file_gz)
+  } else {
+    Decompress7Zip(local_mos_file_Z, "data", TRUE)
+    uncompressed_file <- str_sub(local_mos_file_Z, 1, nchar(local_mos_file_Z) - 2)
+    mos_outputs <- read_lines(uncompressed_file, skip = 2)
+    unlink(uncompressed_file)
   }
   
   # reformat user input of runtime date
@@ -114,6 +126,5 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   
   # final version of data frame we can use to do stuff
   return(mos_df)
-  
   }
 }
