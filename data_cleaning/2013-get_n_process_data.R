@@ -218,6 +218,8 @@ storm_events_precip$MOS.lon <- rep(0, length(storm_events_precip$EVENTS.ID))
 storm_events_precip$MOS.st <- rep(0, length(storm_events_precip$EVENTS.ID))
 storm_events_precip$MOS.dist_from_event.km <- rep(0, length(storm_events_precip$EVENTS.ID))
 
+#### START HERE AT HOME
+
 for (j in 1:length(storm_events_precip$EVENTS.ID)) {
   
   dd <- distm(matrix(c(storm_events_precip$EVENTS.begin_lon[j], storm_events_precip$EVENTS.begin_lat[j]), ncol = 2),
@@ -385,7 +387,7 @@ names(storm_events_precip)[33] <- "GHCND.prcp_cat"
 # load MOS retrival function
 source("data_cleaning/get_archived_GFSX_MOS.R")
 
-4#-- beware! nasty hack job below
+#-- beware! nasty hack job below
 
 # collect 5 day ahead forecast on Q12
 mos5day12 <- NULL
@@ -513,7 +515,7 @@ rm(j, eid)
 
 #-- merge forecast data to storm_events_precip ID and date
 # save.image("data/snapshot_2017-07-26-0023.Rdata")
-save.image("data/2013_snapshot_2017-8-1-2315.RData")
+save.image("data/2013_snapshot_2017-9-01.RData")
 rm(ghcnd_station_list, storm_events)
 ###
 mos_q24 <- merge(mos2day24, mos6day24, by.x="index", by.y="index")
