@@ -12,19 +12,22 @@
 
 # load libraries
 # install.packages("dplyr")
-library(dtplyr)
+library(dplyr)
 library(bea.R)
 
-# load processed 2015 and 2014 storm events, obs, and forecasts
+# load processed 2015-2013 storm events, obs, and forecasts
 
 fteen <- read.csv("data/2015_storm_events_processed.csv", stringsAsFactors = FALSE)
 frteen <- read.csv("data/2014_storm_events_processed.csv", stringsAsFactors = FALSE)
-
+thteen <- read.csv("data/2013_storm_events_processed.csv", stringsAsFactors = FALSE)
 # remove extra columns (this should be done by name instead of index)
-fteen <- fteen[,-1]
-frteen <- frteen[,-c(1,37,38)]
+fteen$X <- NULL
+frteen$X <- NULL
+frteen$judge1 <- NULL
+frteen$judge2 <- NULL
+thteen$X <- NULL
 
-combined_events <- rbind(fteen, frteen)
+combined_events <- rbind(fteen, frteen, thteen)
 
 # using the FCC API to match lat/lon to census tracts
 # census block conversion API docs here: https://www.fcc.gov/general/census-block-conversions-api
@@ -50,15 +53,15 @@ request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showa
 
 str(request)
 
-# change to whatever number of obs we end up having (2014-15 = 1167)
-tracts <- data.frame(FIPS = rep(0, 1167),
-                     County.FIPS = rep(0, 1167),
-                     County.name = rep(0, 1167),
-                     State.FIPS = rep(0, 1167),
-                     State.code = rep(0, 1167),
-                     State.name = rep(0, 1167),
-                     status     = rep(0, 1167),
-                     executionTime = rep(0, 1167))
+# change to whatever number of obs we end up having (2013-15 = 1697)
+tracts <- data.frame(FIPS = rep(0, 1697),
+                     County.FIPS = rep(0, 1697),
+                     County.name = rep(0, 1697),
+                     State.FIPS = rep(0, 1697),
+                     State.code = rep(0, 1697),
+                     State.name = rep(0, 1697),
+                     status     = rep(0, 1697),
+                     executionTime = rep(0, 1697))
 
 nevents <- length(combined_events$EVENTS.begin_lat)
 #  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
@@ -71,11 +74,19 @@ for (i in 1:nevents) {
 
 tracts
 
+# test whether all the calls worked...
+
+table(tracts$status == "OK") # FALSE 36, TRUE 1661 # not sure what the issue is....
+
+
 # cbind with combined_events
 
 combined_events <- cbind(combined_events, tracts)
 
-#-- get real GDP by MSA for 2014-15
+# tidy events - drop cols not needed now 
+tidy_events <- combined_events[, c(2,36:41,16,17,33,34,35,20,21)]
+
+#-- get real GDP by MSA for 2013-15
 beakey <- "AF498701-0543-490E-B9B3-B850D6166872"
 
 
@@ -88,7 +99,7 @@ beaSpecs <- list(
   "Component" = "RGDP_MAN",
   "IndustryId" = "1",
   "GeoFIPS" = "MSA",
-  "Year" = "2014, 2015",
+  "Year" = "2013, 2014, 2015",
   "ResultFormat" = "json"
 )
 gdp_msa <- beaGet(beaSpecs, asWide = FALSE)
@@ -114,7 +125,7 @@ gdp_msa$GeoName <- gsub(" (Metropolitan Statistical Area)", "", gdp_msa$GeoName,
 # with gdp_msa$GeoName and merge result into gdp_msa
 gdp_msa$GeoFips <- as.numeric(gdp_msa$GeoFips)
 gdp_msa <- merge(gdp_msa, cbsa_info, by.x = "GeoFips", by.y = "CBSA.code")
-
+  
 # Tidy gdp_msa
 gdp_msa <- gdp_msa[, c(4,1,3,11,7,6,5)]  # rearrange columns
 colnames(gdp_msa) <- c("YEAR", # 4
@@ -125,18 +136,16 @@ colnames(gdp_msa) <- c("YEAR", # 4
                        "MSA.GPD.magnitude", # 6
                        "MSA.GPD.unit") # 5
 
-# We no longer need msa_code_list so remove it from workspace to save RAM.
-rm(cbsa_info)
 
 # list of all counties in each msa, from bea: https://www.bea.gov/regional/docs/msalist.cfm
-# download as csvhg
+# download as csv
 msa_list <- read.csv("data_cleaning/metrolist.csv", header = F, sep = ",", fill = T, stringsAsFactors = F, strip.white = TRUE)
-?read.csv
-names(msa_list) <- c("cbsa.code","msa.name","fips.st.cnty","cnty")
+names(msa_list) <- c("CBSA.code","msa.name","fips.state.county","County.name")
 
-# separate state abbrevs
+# edit msa.name to match gdp/msa names
+msa_list$msa.name <- gsub(" (Metropolitan Statistical Area)", "", msa_list$msa.name, fixed = TRUE)
 
-msa_list <- separate(data = msa_list, col = cnty, into = c("cnty", "st"), sep = ",")
+msa_list <- separate(data = msa_list, col = County.name, into = c("County.name", "State"), sep = ",")
 # this worked but:
 # Warning messages:
 #   1: Too many values at 4 locations: 884, 1012, 1103, 1104 
@@ -150,13 +159,37 @@ msa_list[1148:1150,] # BEA attribution (delete)
 # delete BEA attribution
 msa_list <- msa_list[-c(1148:1150),]
 # reassign all the weird VA names to VA
-msa_list$st[884] <- "VA"
-msa_list$st[1012] <- "VA"
-msa_list$st[1103] <- "VA"
-msa_list$st[1104] <- "VA"
+msa_list$state.abb[884] <- "VA"
+msa_list$state.abb[1012] <- "VA"
+msa_list$state.abb[1103] <- "VA"
+msa_list$state.abb[1104] <- "VA"
 
-### TODO
-## Merge MSA county list with GDP list
+# merge msa list and gdp 
+gdp_msa$CBSA.code <- as.integer(gdp_msa$CBSA.code)
+msa_list$CBSA.code <- as.integer(msa_list$CBSA.code)
 
+gdp_msa_counties <- merge(gdp_msa, msa_list, by.x = c("CBSA.code","CBSA.title"), by.y = c("CBSA.code","msa.name"), allow.cartesian = TRUE)
 
+## add full state names to gdpmsacountylist
+# trim ws around st var
+gdp_msa_counties$State <- trimws(gdp_msa_counties$State)
 
+# create state name and abb lookup table
+states <- data.frame(state.full=toupper(state.name), State = toupper(state.abb))
+states <- bind_rows(states, data.frame(state.full="DISTRICT OF COLUMBIA", State="DC") )
+# merge on the look up table
+gdp_msa_counties <- merge(gdp_msa_counties, states, by = "State")
+
+# extract year var in events, so we can merge by events, county, and state
+library(lubridate)
+tidy_events$EVENTS.year <- year(tidy_events$EVENTS.begin_date)
+tidy_events$State.name <- toupper(tidy_events$State.name)
+
+# merge gdp_msa_counties into combined events
+tidy_events <- merge(tidy_events, gdp_msa_counties, by.x = c("County.name","State.name","EVENTS.year",
+                                                                     "State.code"),
+                         by.y = c("County.name","State.full","YEAR","State"))
+
+## todo
+## recode damage vars
+## write tidy_events to csv -> then load into the visualization script to make some maps!
