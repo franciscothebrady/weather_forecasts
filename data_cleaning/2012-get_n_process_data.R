@@ -94,7 +94,7 @@ rm(cbsa_info)
 
 # take storm events data for 2012
 # https://www1.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20170216.csv.gz
-storm_events <- as.data.frame(read.csv("data/StormEvents_details-ftp_v1.0_d2012_c20160223.csv.gz", stringsAsFactors = FALSE))
+storm_events <- as.data.frame(read.csv("data/StormEvents_details-ftp_v1.0_d2012_c20170519.csv.gz", stringsAsFactors = FALSE))
 
 # filter out events outside CONUS, HI, and AK.
 storm_events <- dplyr::filter(storm_events, STATE_FIPS < 57 & STATE_FIPS > 0)
