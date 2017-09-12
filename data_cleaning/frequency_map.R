@@ -224,6 +224,7 @@ library(choroplethrMaps)
 # format so the state names match up
 state_freq$STATE <- tolower(state_freq$STATE)
 names(state_freq) <- c("region","value")
-state_choropleth(state_freq, title = "Historical Severe Precipitation, 2000-2015")
+state_choropleth(state_freq, title = "Historical Severe Precipitation, 2000-2015") # warning: creates large file.
+#rm(historical_freq)
 
 # dfGroup <- energy %>% group_by(datetime) %>% summarise(value)
