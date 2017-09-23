@@ -1,10 +1,20 @@
 # event frequencies
 # combining 15 years of data on storm events to build a frequency measure for severe rain events in CONUS
-# timeframe: 2000-2000
+# timeframe: 2000-2015
 
 setwd("~/weather_forecasts/")
 library(stringr)
 library(dplyr)
+library(ggmap)
+library(ggplot2)
+library(maps)
+# install.packages("mapdata")
+library(mapdata)
+#install.packages("choroplethr")
+#install.packages("choroplethrMaps")
+library(choroplethr)
+library(choroplethrMaps)
+
 # read in 2000
 zero <- as.data.frame(read.csv("data/StormEvents_details-ftp_v1.0_d2000_c20170717.csv.gz", stringsAsFactors = FALSE))
 # filter out events outside CONUS, HI, and AK.
@@ -197,7 +207,7 @@ freq_totals$DAMAGE_VALUE.magnitude <- NULL
 
 # combine injuries/fatalities, could be interesting later
 freq_totals$injuries.deaths <- freq_totals$INJURIES_DIRECT + freq_totals$INJURIES_INDIRECT +
-  freq_totals$DEATHS_DIRECT + freq_totals$DEATHS_INDIRECT
+freq_totals$DEATHS_DIRECT + freq_totals$DEATHS_INDIRECT
 freq_totals$INJURIES_DIRECT <- NULL
 freq_totals$INJURIES_INDIRECT <- NULL
 freq_totals$DEATHS_DIRECT <- NULL
@@ -209,22 +219,37 @@ wfo_reg <- read.csv(url("https://raw.githubusercontent.com/franciscothebrady/wea
 # remove Alaska becuase it's useless!
 wfo_reg <- filter(wfo_reg, region!="Alaska")
 # match WFOs in freq totals 
-freq_totals <- merge(freq_totals, wfo_reg, by.x = c("WFO","YEAR"), by.y = c("wfo","Year"), all.x = TRUE)
+freq_totals <- merge(freq_totals, wfo_reg, by.x = c("WFO"), by.y = c("wfo"), all.x = TRUE)
 rm(wfo_reg)
+table(is.na(freq_totals$BEGIN_LAT))
+# write to csv as tidy_precip_history.csv (need to remember to do this more often)
+write.csv(freq_totals, "~/weather_forecasts/data/frequency_totals_00-15.csv")
 # MAPS!
-# group by state (this gives us the total in the last 15 years by state)
-state_freq <- group_by(freq_totals, STATE)
-# which we can then summarize!
-state_freq <- count(state_freq)
+# group by state and year
+# state_year_freq <- group_by(freq_totals, STATE, YEAR) 
+yearly <- group_by(freq_totals, YEAR, STATE)
+yearly_state <- summarize(yearly, count = n())
+yearly_state$region <- tolower(yearly_state$STATE)
+year_ten <- filter(yearly_state, YEAR==2010)
 
-# install.packages("choroplethr")
-# install.packages("choroplethrMaps")
-library(choroplethr)
-library(choroplethrMaps)
-# format so the state names match up
-state_freq$STATE <- tolower(state_freq$STATE)
-names(state_freq) <- c("region","value")
-state_choropleth(state_freq, title = "Historical Severe Precipitation, 2000-2015") # warning: creates large file.
-#rm(historical_freq)
+# example using ggmap
+# https://rpubs.com/neilfws/229230
+# follow this! esp the one mapping by magnitude!
 
-# dfGroup <- energy %>% group_by(datetime) %>% summarise(value)
+
+states <- map_data("state")
+
+states <- left_join(states, year_ten, by = "region")
+
+
+ggplot(data = states) + geom_polygon(data = states, aes(x=long, y=lat, group = group, fill = count), color = "white")
+  
+
+# map of events 2000-20125
+
+usa <- make_bbox(lon = BEGIN_LON, lat = BEGIN_LAT, data = freq_totals, f = .1)
+usa
+usa_map <- get_map(location = usa, zoom = 3, maptype = "satellite", source = "google")
+
+ggmap(usa_map) + geom_point(data = freq_totals, mapping = aes(x=BEGIN_LON, y=BEGIN_LAT),
+                            color="blue", size = 2)

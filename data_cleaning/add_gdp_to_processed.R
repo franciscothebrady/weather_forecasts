@@ -82,7 +82,7 @@ table(tracts$status == "OK") # FALSE 36, TRUE 1661 # not sure what the issue is.
 # cbind with combined_events
 
 combined_events <- cbind(combined_events, tracts)
-
+rm(frteen, fteen,thteen)
 # tidy events - drop cols not needed now 
 tidy_events <- combined_events[, c(2,36:41,16,17,33,34,35,20,21)]
 
@@ -184,12 +184,66 @@ gdp_msa_counties <- merge(gdp_msa_counties, states, by = "State")
 library(lubridate)
 tidy_events$EVENTS.year <- year(tidy_events$EVENTS.begin_date)
 tidy_events$State.name <- toupper(tidy_events$State.name)
-
+gdp_msa_counties$YEAR <- as.numeric(gdp_msa_counties$YEAR)
+tidy_events$County.FIPS <- as.numeric(tidy_events$County.FIPS)
 # merge gdp_msa_counties into combined events
-tidy_events <- merge(tidy_events, gdp_msa_counties, by.x = c("County.name","State.name","EVENTS.year",
-                                                                     "State.code"),
-                         by.y = c("County.name","State.full","YEAR","State"))
 
-## todo
+gdp_tidy_events <- inner_join(gdp_msa_counties, tidy_events, by = c("fips.state.county"="County.FIPS",
+                                                               "state.full"="State.name",
+                                                               "YEAR"="EVENTS.year",
+                                                               "State"="State.code"))
+
+
 ## recode damage vars
-## write tidy_events to csv -> then load into the visualization script to make some maps!
+# use damage magnitude n as exponent value to multiply on damage amount.
+gdp_tidy_events$EVENTS.damage_value <- gdp_tidy_events$EVENTS.damage_value*10^gdp_tidy_events$EVENTS.damage_magnitude
+gdp_tidy_events$EVENTS.damage_magnitude <- NULL
+
+# create a "forecast skill variable" - subtract forecasted prcp category from actual ghcnd prcp category
+# for f2 (three day forecast)
+gdp_tidy_events$skill.f2 <- gdp_tidy_events$Q24.f2 - gdp_tidy_events$GHCND.prcp_cat
+# for f6 (seven day forecast)
+gdp_tidy_events$skill.f6 <- gdp_tidy_events$Q24.f6 - gdp_tidy_events$GHCND.prcp_cat
+
+# calculate gdp from MSA.GDP*10^MSA.GDP.magnitude
+gdp_tidy_events$MSA.GPD.magnitude <- as.numeric(gdp_tidy_events$MSA.GPD.magnitude)
+gdp_tidy_events$MSA.GDP.value <- gdp_tidy_events$MSA.GDP*10^gdp_tidy_events$MSA.GPD.magnitude
+
+# calculate EVENTS.damage_value / MSA.GDP.value, which we'll then  log to plot
+gdp_tidy_events$damage.over.gdp <- gdp_tidy_events$EVENTS.damage_value / gdp_tidy_events$MSA.GDP.value
+
+# plot damage value over "skill score" for f2 using log/gdp
+plot(gdp_tidy_events$skill.f2, gdp_tidy_events$damage.over.gdp)
+# same thing with only non-zero damages
+with(gdp_tidy_events[gdp_tidy_events$EVENTS.damage_value !=0, ],
+     plot(gdp_tidy_events$skill.f2, log(gdp_tidy_events$damage.over.gdp)))
+# with(df[df$var1 < N, ], plot( var1, var2))
+
+# plot damage value over "skill score" for f6
+# visualization of forecast accuracy with boxplots (forecast-obs on y axis, x axis is forecast category)
+boxplot(skill.f2 ~ GHCND.prcp_cat, data = gdp_tidy_events, main = "36 Hour Forecast Quality", xlab = "Observed Precip. Categories", ylab = "Forecasted - Observed")
+boxplot(skill.f6 ~ GHCND.prcp_cat, data = gdp_tidy_events, main = "192 Hour Forecast Quality", xlab = "Observed Precip. Categories", ylab = "Forecasted - Observed")
+
+boxplot(skill.f2 ~ GHCND.prcp_cat, data = gdp_tidy_events, lwd = 2, ylab = "Forecast Accuracy")
+stripchart(skill.f2 ~ GHCND.prcp_cat, vertical = TRUE, data = gdp_tidy_events,
+           method = "jitter", add = TRUE, pch = 20, col = "blue")
+# create summary tables for output for each year
+# install.packages("stargazer")
+library(stargazer)
+
+gdp_tidy_events %>% filter(YEAR==2013) %>% 
+  select(state.full, MSA.GDP.value, EVENTS.damage_value, CBSA.pop_density) %>% stargazer(type="html", title="2013", out="2013.html")
+
+gdp_tidy_events %>% filter(YEAR==2014) %>% 
+  select(state.full, MSA.GDP.value, EVENTS.damage_value, CBSA.pop_density) %>% stargazer(type="html", title="2014", out="2014.html")
+
+gdp_tidy_events %>% filter(YEAR==2015) %>% 
+  select(state.full, MSA.GDP.value, EVENTS.damage_value, CBSA.pop_density) %>% stargazer(type="html", title="2015", out="2015.html")
+
+# were there any places where the skill was 0 (perfect) and the damage was 0?
+
+test  <- gdp_tidy_events %>% filter(skill.f2==0, skill.f6==0, EVENTS.damage_value==0, Q24.f6==1) # %>%    stargazer(type="text", title="Perfect 7-day Forecasts, No Damage?", summary = FALSE)
+View(test)
+gdp_tidy_events %>% filter(skill.f2==0, skill.f6==0, EVENTS.damage_value==0, Q24.f2==1) %>% 
+  select(EVENTS.begin_date, CBSA.title, MSA.GDP, skill.f2, skill.f6, GHCND.prcp_cat, EVENTS.damage_value) %>%
+  stargazer(type="html", title="Perfect 3-day Forecasts, No Damage?", out="perfect_3day.html", summary = FALSE)

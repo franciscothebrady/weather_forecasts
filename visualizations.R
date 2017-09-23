@@ -1,20 +1,35 @@
 # visualizations
 
-# step 1 - read in combined events
-# step 2 - create boxplots based on forecasts and weather
-# step 3 - GDP by Damage over years?
+# step 1 - read in tidy events
+# step 2 - create boxplots based on forecasts and weather for each year
+# step 3 - make some sort of plot for damage over difference in skill. 
+# do this by creating a difference variable (GHCND - F2, GHCND - F6) and plotting that with Damage over GDP.
 
 
-boxplot(GHCND.prcp_cat ~ Q24.f2, data = combined_events)
+
 
 
 
 library(ggplot2)
 # showing 24h 3-day forecast 
-plotcast <- ggplot(storm_events_14, aes(x = GHCND.prcp_cat, y = Q24.f2)) + 
+plotcast <- ggplot(combined_events, aes(x = GHCND.prcp_cat, y = Q24.f2)) + 
   geom_boxplot() + scale_y_continuous(name = "3-Day, 24h QPF Category") +
-  scale_x_discrete(limits = c(1:6), name = "Observed Precipitation Categories") + 
+  scale_x_discrete(limits = c(0:6), name = "Observed Precipitation Categories") + 
   ggtitle("2014, Forecasted Precipitation vs. Observed") + geom_segment(aes(x=0,y=0, xend=7, yend=7))
+
+plotcast2 <- ggplot(combined_events, aes(x = GHCND.prcp_cat, y = Q24.f6)) + 
+  geom_boxplot() + scale_y_continuous(name = "6-Day, 24h QPF Category") +
+  scale_x_discrete(limits = c(0:6), name = "Observed Precipitation Categories") + 
+  ggtitle("2014, Forecasted Precipitation vs. Observed") + geom_segment(aes(x=0,y=0, xend=7, yend=7))
+
+
+boxplot(GHCND.prcp_cat ~ Q24.f6, data = combined_events)
+# try with a scatterplot 
+
+#ggplot(mydata) + geom_boxplot(aes(x = date, y = measure, group = date))
+
+ggplot(combined_events) + geom_boxplot(aes(x = GHCND.prcp_cat, y = Q24.f6))
+
 
 plotcast # Warning message: Removed 148 rows containing non-finite values (stat_boxplot). 
 # need to figure out how to count category 0 forecasts and observed. since it still might be some precip.

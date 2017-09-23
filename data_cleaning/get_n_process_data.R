@@ -569,7 +569,7 @@ library(httr)
 options(stringsAsFactors = FALSE)
 
 
-# following this as an example: http://tophcito.blogspot.com/2015/11/accessing-apis-from-r-and-little-r.html#fn2
+
 # set up the url and parameters
 
 url <- "http://data.fcc.gov/api/block/find?format=json"
