@@ -166,13 +166,16 @@ lapply(files, function(x) {
     "Component" = "RGDP_MAN",
     "IndustryId" = "1",
     "GeoFIPS" = "MSA",
-    "Year" = "2010,2011,2012,2013,2014,2015,2016",
-    "ResultFormat" = "json"
+    "Year" = "2010,2011,2012,2013,2014,2015,2016", # is there a way to set year as a var and insert it here?
+    "ResultFormat" = "json"                        # otherwise i think its calling all years for each file...
   )
   gdp_msa <- beaGet(beaSpecs, asWide = FALSE)
   rm(beaSpecs)
   
   # i dont think we need the CBSA code matching that was here since we're using the FCC API
+  
+  # TODO
+  # merge gdp with events, based on year and county 
   
   # write to a big old file (I think this should be enough?)
   write.csv(events, "data/all_events.csv",

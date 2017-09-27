@@ -104,7 +104,6 @@ storm_events <- dplyr::filter(storm_events, !(DAMAGE_PROPERTY == "") & !(DAMAGE_
 
 #-- filter for PRCP related events=="Heavy Rain"
 storm_events_precip <- dplyr::filter(storm_events, EVENT_TYPE == "Heavy Rain")
-## change all references to storm_events to storm_events_precip below this
 
 # Tidy storm_events data frame
 
