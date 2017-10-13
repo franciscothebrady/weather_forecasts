@@ -8,12 +8,14 @@
 # 5. uses FCC Census block API to grab state, county FIPS codes,
 #    and census block codes.
 # 6. performs a check to make sure original storm events data matches
-#    output from FCC API (don't know how to do this yet)
+#    output from FCC API
+# 7. writes it all to a csv (without headers--fix this later by just saving headers separately somewhere)
 
 setwd("~/weather_forecasts/")
 
 # load libraries
 library(plyr)
+library(dplyr)
 library(dtplyr)
 library(stringr)
 library(purrr)
@@ -23,31 +25,26 @@ library(geosphere)
 library(weathermetrics)
 library(jsonlite)
 library(httr)
-
-#-- API keys (fb's API keys)
-# Putting this here is very bad practice!
-noaakey <- "LHfBxDvUCXUreWbNRDPCGEjYfaBLfLGh"
-beakey <- "AF498701-0543-490E-B9B3-B850D6166872"
-
+library(lubridate)
 
 # grab a list of the storm event files
 
 files <- list.files(path="data/", pattern="StormEvents_details-ftp_v1.0_d*",
                     full.names = T, recursive = FALSE)
 
-# function to clean observations and append them all into one file at the end.
-lapply(files, function(x) {
+for(i in 1:length(files)){
+  
   #-- get severe weather data with damage reports from NOAA
   #-- (https://www.ncdc.noaa.gov/swdi/#Intro)
-  events <- as.data.frame(read.csv(events, stringsAsFactors = FALSE))
+  events <- as.data.frame(read.csv(files[i], stringsAsFactors = FALSE))
   
-  # filter out events outside CONUS, HI, and AK.
-  events <- dplyr::filter(events, STATE_FIPS < 57 & STATE_FIPS > 0)
-  
+  # filter out events outside CONUS (57+), HI (15), and AK(2).
+  events <- dplyr::filter(events, STATE_FIPS < 57 & STATE_FIPS > 2 & STATE_FIPS!=15)
+
   #-- filter for PRCP related events=="Heavy Rain"
   events <- dplyr::filter(events, EVENT_TYPE == "Heavy Rain")
   # filter out obs without lat/lon
-  events <- dplyr::filter(events, BEGIN_LATITUDE != "NA")
+  events <- dplyr::filter(events, BEGIN_LAT != "NA")
   
   # Pad BEGIN_DAY and END_DAY with 0 before merging with
   # respective BEGIN_YEARMONTH and  END_YEARMONTH
@@ -56,23 +53,22 @@ lapply(files, function(x) {
   
   # Merge YEARMONTH and DAY and convert to numeric for next set of manipulations
   events <- dplyr::mutate(events, 
-                          BEGIN_DATE = as.numeric(paste0(BEGIN_YEARMONTH, BEGIN_DAY)),
-                          END_DATE = as.numeric(paste0(END_YEARMONTH, END_DAY)))
+                          BEGIN_DATE = ymd(paste0(BEGIN_YEARMONTH, BEGIN_DAY)),
+                          END_DATE = ymd(paste0(END_YEARMONTH, END_DAY)))
   
   # Convert event time from local to UTC timezone
-  ## leap years: 2012, 2016
-  # events <- dplyr::mutate(events,
-  #                         BEGIN_TIME_UTC = BEGIN_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
-  #                         END_TIME_UTC = END_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
-  #                         BEGIN_DATE_UTC = ifelse(BEGIN_TIME_UTC >= 2400, ifelse(BEGIN_DATE + 1 == 20150229, 20150301, BEGIN_DATE + 1), BEGIN_DATE),
-  #                         END_DATE_UTC = ifelse(END_TIME_UTC >= 2400, ifelse(END_DATE + 1 == 20150229, 20150301, END_DATE + 1), END_DATE),
-  #                         BEGIN_TIME_UTC = ifelse(BEGIN_TIME_UTC >= 2400, BEGIN_TIME_UTC - 2400, BEGIN_TIME_UTC),
-  #                         END_TIME_UTC = ifelse(END_TIME_UTC >= 2400, END_TIME_UTC - 2400, END_TIME_UTC))
-
+  events <- dplyr::mutate(events,
+                BEGIN_TIME_UTC = BEGIN_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
+                END_TIME_UTC = END_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
+                BEGIN_DATE_UTC = ifelse(BEGIN_TIME_UTC >= 2400, BEGIN_DATE+1, BEGIN_DATE),
+                END_DATE_UTC = ifelse(END_TIME_UTC >= 2400, END_DATE + 1, END_DATE),
+                BEGIN_TIME_UTC = ifelse(BEGIN_TIME_UTC >= 2400, BEGIN_TIME_UTC - 2400, BEGIN_TIME_UTC),
+                END_TIME_UTC = ifelse(END_TIME_UTC >= 2400, END_TIME_UTC - 2400, END_TIME_UTC))
+  
   # Pad BEGIN_TIME_UTC and END_TIME_UTC with 0
   events$BEGIN_TIME_UTC <- str_pad(events$BEGIN_TIME_UTC, 4, pad = "0")
   events$END_TIME_UTC <- str_pad(events$END_TIME_UTC, 4, pad = "0")
-  
+
   # Sum damages and add to storm_events_precip data frame
   damage_magnitude <- cbind(
     strsplit(substr(events$DAMAGE_PROPERTY, nchar(events$DAMAGE_PROPERTY),
@@ -89,39 +85,56 @@ lapply(files, function(x) {
   events$DAMAGE_VALUE.unit <- rep("USD", length(events$DAMAGE_VALUE))
   rm(damage_magnitude, damage_numeric, damage_value)
   
-  # Rearrange columns
-  names(events)
-  events <- events[, c(52,54,53,55, 8:10, 13, 15:17, 30:32, 45:48, 58:60)]
-  colnames(events) <- c("EVENTS.begin_date", # 52
-                                     "EVENTS.begin_time_UTC", # 54
-                                     "EVENTS.end_date", # 53
-                                     "EVENTS.end_time_UTC", # 55
-                                     "EVENTS.ID", # 8
-                                     "EVENTS.state", # 9
-                                     "EVENTS.fips", # 10
-                                     "EVENTS.type", # 13
-                                     "EVENTS.czfips", # 15
-                                     "EVENTS.czname", # 16
-                                     "EVENTS.WFO", # 17
-                                     "EVENTS.flood_cause", # 30
-                                     "EVENTS.hurricane_category", # 31
-                                     "EVENTS.tornado_F_scale", # 32
-                                     "EVENTS.begin_lat", # 45
-                                     "EVENTS.begin_lon", # 46
-                                     "EVENTS.end_lat", # 47
-                                     "EVENTS.end_lon", # 48
-                                     "EVENTS.damage_value", # 58
-                                     "EVENTS.damage_magnitude", # 59
-                                     "EVENTS.damage_unit") # 60
-  
-  # Convert date to Date format
-  events$EVENTS.begin_date <- as.Date(as.character(events$EVENTS.begin_date), "%Y%m%d")
-  events$EVENTS.end_date <- as.Date(as.character(events$EVENTS.end_date), "%Y%m%d")
+  # select columns and renames, drop unnamed
+  events <- dplyr::select(events, c(EVENTS.begin_date=BEGIN_DATE,
+                           EVENTS.begin_time_UTC=BEGIN_TIME_UTC,
+                           EVENTS.end_date=END_DATE,
+                           EVENTS.end_time_UTC=END_TIME_UTC,
+                           EVENTS.ID=EVENT_ID,
+                           EVENTS.state=STATE,
+                           EVENTS.fips=STATE_FIPS,
+                           EVENTS.type=EVENT_TYPE,
+                           EVENTS.czfips=CZ_FIPS,
+                           EVENTS.czname=CZ_NAME,
+                           EVENTS.wfo=WFO,
+                           EVENTS.flood_cause=FLOOD_CAUSE,
+                           EVENTS.hurricane_category=CATEGORY,
+                           EVENTS.tornado_F_scale=TOR_F_SCALE,
+                           EVENTS.begin_lat=BEGIN_LAT,
+                           EVENTS.begin_lon=BEGIN_LON,
+                           EVENTS.end_lat=END_LAT,
+                           EVENTS.end_lon=END_LON,
+                           EVENTS.damage_value=DAMAGE_VALUE,
+                           EVENTS.damage_magnitude=DAMAGE_VALUE.magnitude,
+                           EVENTS.damage_unit=DAMAGE_VALUE.unit))
+
+  # reorder variables
+  events <- events[c("EVENTS.begin_date", 
+                     "EVENTS.begin_time_UTC",
+                     "EVENTS.end_date",
+                    "EVENTS.end_time_UTC", 
+                    "EVENTS.ID", 
+                    "EVENTS.state",
+                    "EVENTS.fips",
+                    "EVENTS.type",
+                    "EVENTS.czfips",
+                    "EVENTS.czname",
+                    "EVENTS.wfo", 
+                    "EVENTS.flood_cause",
+                    "EVENTS.hurricane_category",
+                    "EVENTS.tornado_F_scale",
+                    "EVENTS.begin_lat",
+                    "EVENTS.begin_lon", 
+                    "EVENTS.end_lat", 
+                    "EVENTS.end_lon", 
+                    "EVENTS.damage_value",
+                    "EVENTS.damage_magnitude",
+                    "EVENTS.damage_unit")]
   
   
   # apply FCC Census Block API from: https://www.fcc.gov/general/census-block-conversions-api
   # set up the url and parameters
-    url <- "http://data.fcc.gov/api/block/find?format=json"
+  url <- "http://data.fcc.gov/api/block/find?format=json"
   
   latitude <- events$EVENTS.begin_lat
   longitude <- events$EVENTS.begin_lon
@@ -147,39 +160,42 @@ lapply(files, function(x) {
     latitude <- events$EVENTS.begin_lat[i]
     longitude <- events$EVENTS.begin_lon[i]
     request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
-    tracts[i,] <- as.data.frame.list(request)
+    tracts[i,] <- as.data.frame.list(request, stringsAsFactors = FALSE)
   }
   
+  events <- cbind(events, tracts)
+  rm(tracts)
+  
   ### sanity check comparing original obs county and FCC API County
-  ### not sure how to implement this totally yet, 
-  ### something like identical(events$cz-county, events$fcc.county.name)
-  ### but identical is sort of strict
-  ### could use fips codes
+  matches <- as.numeric(substr(events$fcc.county.FIPS, 3, 5)) == as.numeric(events$EVENTS.czfips)
+  table(as.numeric(substr(events$fcc.county.FIPS, 3, 5)) == as.numeric(events$EVENTS.czfips))
+  trues <- events[matches==TRUE,]
+  falses <- events[matches==FALSE,]
   
-  # at this point grab gdp
-  #-- get real GDP by MSA for 2015
-  #-- (https://www.bea.gov/API/bea_web_service_api_user_guide.htm)
-  beaSpecs <- list(
-    "UserID" = beakey,
-    "method" = "GetData",
-    "datasetname" = "RegionalProduct", 
-    "Component" = "RGDP_MAN",
-    "IndustryId" = "1",
-    "GeoFIPS" = "MSA",
-    "Year" = "2010,2011,2012,2013,2014,2015,2016", # is there a way to set year as a var and insert it here?
-    "ResultFormat" = "json"                        # otherwise i think its calling all years for each file...
-  )
-  gdp_msa <- beaGet(beaSpecs, asWide = FALSE)
-  rm(beaSpecs)
+  # #### REMOVE DO THIS LATER
+  # # at this point grab gdp
+  # #-- get real GDP by MSA for 2015
+  # #-- (https://www.bea.gov/API/bea_web_service_api_user_guide.htm) # check docs for YEAR
+  # beaSpecs <- list(
+  #   "UserID" = beakey,
+  #   "method" = "GetData",
+  #   "datasetname" = "RegionalProduct", 
+  #   "Component" = "RGDP_MAN",
+  #   "IndustryId" = "1",
+  #   "GeoFIPS" = "MSA",
+  #   "Year" = "2010,2011,2012,2013,2014,2015,2016", # is there a way to set year as a var and insert it here?
+  #   "ResultFormat" = "json"                        # otherwise i think its calling all years for each file...
+  # )
+  # gdp_msa <- beaGet(beaSpecs, asWide = FALSE)
+  # rm(beaSpecs)
   
-  # i dont think we need the CBSA code matching that was here since we're using the FCC API
+
   
   # TODO
   # merge gdp with events, based on year and county 
-  
-  # write to a big old file (I think this should be enough?)
-  write.csv(events, "data/all_events.csv",
+  #### REMOVE DO THIS LATER
+
+    write.table(events, "data/1_events.csv",
             append = TRUE, sep = ",",
-            row.names = FALSE, col.names = TRUE)
-})
-  
+            row.names = FALSE, col.names = FALSE)
+}
