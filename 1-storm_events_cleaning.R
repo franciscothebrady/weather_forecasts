@@ -45,7 +45,8 @@ for(i in 1:length(files)){
   events <- dplyr::filter(events, EVENT_TYPE == "Heavy Rain")
   # filter out obs without lat/lon
   events <- dplyr::filter(events, BEGIN_LAT != "NA")
-  
+  print(events$EVENTS.begin_date[1])
+  dim(events)
   # Pad BEGIN_DAY and END_DAY with 0 before merging with
   # respective BEGIN_YEARMONTH and  END_YEARMONTH
   events$BEGIN_DAY <- str_pad(events$BEGIN_DAY, 2, pad = "0")
@@ -161,6 +162,9 @@ for(i in 1:length(files)){
     longitude <- events$EVENTS.begin_lon[i]
     request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
     tracts[i,] <- as.data.frame.list(request, stringsAsFactors = FALSE)
+    #### insert pause of random # of  secs
+    Sys.sleep(abs(rnorm(1))) 
+    
   }
   
   events <- cbind(events, tracts)
@@ -171,7 +175,7 @@ for(i in 1:length(files)){
   table(as.numeric(substr(events$fcc.county.FIPS, 3, 5)) == as.numeric(events$EVENTS.czfips))
   trues <- events[matches==TRUE,]
   falses <- events[matches==FALSE,]
-  
+  write
   # #### REMOVE DO THIS LATER
   # # at this point grab gdp
   # #-- get real GDP by MSA for 2015
