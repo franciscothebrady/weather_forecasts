@@ -14,6 +14,7 @@
 setwd("~/weather_forecasts/")
 
 # load libraries
+library(maps)
 library(plyr)
 library(dplyr)
 library(dtplyr)
@@ -43,8 +44,15 @@ for(i in 1:length(files)){
 
   #-- filter for PRCP related events=="Heavy Rain"
   events <- dplyr::filter(events, EVENT_TYPE == "Heavy Rain")
+  
   # filter out obs without lat/lon
   events <- dplyr::filter(events, BEGIN_LAT != "NA")
+
+  dim(events)
+  # and events outside of CONUS (minlon, minlat),(maxlon, maxlat) : (-124.848974, 24.396308) - (-66.885444, 49.384358)
+  events <- dplyr::filter(events, BEGIN_LAT >=  24 & BEGIN_LAT <= 50, 
+                          BEGIN_LON >= -125 & BEGIN_LON <= -67)
+  
   print(events$EVENTS.begin_date[1])
   dim(events)
   # Pad BEGIN_DAY and END_DAY with 0 before merging with
@@ -110,27 +118,27 @@ for(i in 1:length(files)){
                            EVENTS.damage_unit=DAMAGE_VALUE.unit))
 
   # reorder variables
-  events <- events[c("EVENTS.begin_date", 
-                     "EVENTS.begin_time_UTC",
-                     "EVENTS.end_date",
-                    "EVENTS.end_time_UTC", 
-                    "EVENTS.ID", 
-                    "EVENTS.state",
-                    "EVENTS.fips",
-                    "EVENTS.type",
-                    "EVENTS.czfips",
-                    "EVENTS.czname",
-                    "EVENTS.wfo", 
-                    "EVENTS.flood_cause",
-                    "EVENTS.hurricane_category",
-                    "EVENTS.tornado_F_scale",
-                    "EVENTS.begin_lat",
-                    "EVENTS.begin_lon", 
-                    "EVENTS.end_lat", 
-                    "EVENTS.end_lon", 
-                    "EVENTS.damage_value",
-                    "EVENTS.damage_magnitude",
-                    "EVENTS.damage_unit")]
+  events <- events[ , c("EVENTS.begin_date",
+                        "EVENTS.begin_time_UTC",
+                        "EVENTS.end_date",
+                        "EVENTS.end_time_UTC", 
+                        "EVENTS.ID", 
+                        "EVENTS.state",
+                        "EVENTS.fips",
+                        "EVENTS.type",
+                        "EVENTS.czfips",
+                        "EVENTS.czname",
+                        "EVENTS.wfo",
+                        "EVENTS.flood_cause",
+                        "EVENTS.hurricane_category",
+                        "EVENTS.tornado_F_scale",
+                        "EVENTS.begin_lat",
+                        "EVENTS.begin_lon",
+                        "EVENTS.end_lat",
+                        "EVENTS.end_lon",
+                        "EVENTS.damage_value",
+                        "EVENTS.damage_magnitude",
+                        "EVENTS.damage_unit")]
   
   
   # apply FCC Census Block API from: https://www.fcc.gov/general/census-block-conversions-api
@@ -142,9 +150,8 @@ for(i in 1:length(files)){
   request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false")
   
   str(request)
-  
+  table(request)
   # use the names of the lists as the names for the df to make
-  # not sure if this is going to work, may have to use = length(nrows(events)
   tracts <- data.frame(FIPS = integer(),
                      fcc.county.FIPS = integer(),
                      fcc.county.name = character(),
@@ -163,7 +170,7 @@ for(i in 1:length(files)){
     request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
     tracts[i,] <- as.data.frame.list(request, stringsAsFactors = FALSE)
     #### insert pause of random # of  secs
-    Sys.sleep(abs(rnorm(1))) 
+    Sys.sleep(abs(rnorm(1)*5)) 
     
   }
   
@@ -175,31 +182,11 @@ for(i in 1:length(files)){
   table(as.numeric(substr(events$fcc.county.FIPS, 3, 5)) == as.numeric(events$EVENTS.czfips))
   trues <- events[matches==TRUE,]
   falses <- events[matches==FALSE,]
-  write
-  # #### REMOVE DO THIS LATER
-  # # at this point grab gdp
-  # #-- get real GDP by MSA for 2015
-  # #-- (https://www.bea.gov/API/bea_web_service_api_user_guide.htm) # check docs for YEAR
-  # beaSpecs <- list(
-  #   "UserID" = beakey,
-  #   "method" = "GetData",
-  #   "datasetname" = "RegionalProduct", 
-  #   "Component" = "RGDP_MAN",
-  #   "IndustryId" = "1",
-  #   "GeoFIPS" = "MSA",
-  #   "Year" = "2010,2011,2012,2013,2014,2015,2016", # is there a way to set year as a var and insert it here?
-  #   "ResultFormat" = "json"                        # otherwise i think its calling all years for each file...
-  # )
-  # gdp_msa <- beaGet(beaSpecs, asWide = FALSE)
-  # rm(beaSpecs)
-  
-
-  
-  # TODO
-  # merge gdp with events, based on year and county 
-  #### REMOVE DO THIS LATER
-
-    write.table(events, "data/1_events.csv",
-            append = TRUE, sep = ",",
-            row.names = FALSE, col.names = FALSE)
+  print(length(trues)/length(events))
+  # write to csv
+  colnames <- names(events)
+  write.table(colnames, "data/colnames.csv", append = FALSE)
+  write.table(events, "data/1_events.csv",
+              append = TRUE, sep = ",",
+              row.names = FALSE, col.names = FALSE)
 }
