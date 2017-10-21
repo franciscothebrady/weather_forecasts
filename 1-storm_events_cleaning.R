@@ -33,7 +33,8 @@ library(lubridate)
 files <- list.files(path="data/", pattern="StormEvents_details-ftp_v1.0_d*",
                     full.names = T, recursive = FALSE)
 
-for(i in 1:length(files)){
+events_clean <- function(){
+  for(i in 1:length(files)){
   
   #-- get severe weather data with damage reports from NOAA
   #-- (https://www.ncdc.noaa.gov/swdi/#Intro)
@@ -53,7 +54,7 @@ for(i in 1:length(files)){
   events <- dplyr::filter(events, BEGIN_LAT >=  24 & BEGIN_LAT <= 50, 
                           BEGIN_LON >= -125 & BEGIN_LON <= -67)
   
-  print(events$EVENTS.begin_date[1])
+  print(events$BEGIN_DATE_TIME[1])
   dim(events)
   # Pad BEGIN_DAY and END_DAY with 0 before merging with
   # respective BEGIN_YEARMONTH and  END_YEARMONTH
@@ -141,18 +142,12 @@ for(i in 1:length(files)){
                         "EVENTS.damage_unit")]
   
   
+  # check if lat/lon vars are actually numbers
+  print(is.numeric(events$EVENTS.begin_lon))
+  print(is.numeric(events$EVENTS.begin_lat))
   # apply FCC Census Block API from: https://www.fcc.gov/general/census-block-conversions-api
-  # set up the url and parameters
-  url <- "http://data.fcc.gov/api/block/find?format=json"
-  
-  latitude <- events$EVENTS.begin_lat
-  longitude <- events$EVENTS.begin_lon
-  request <- paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false")
-  
-  str(request)
-  table(request)
   # use the names of the lists as the names for the df to make
-  tracts <- data.frame(FIPS = integer(),
+  tracts <- data.frame(census.block = integer(),
                      fcc.county.FIPS = integer(),
                      fcc.county.name = character(),
                      state.FIPS = integer(),
@@ -165,12 +160,15 @@ for(i in 1:length(files)){
   nrain <- length(events$EVENTS.begin_lat)
   #  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
   for (i in 1:nrain) {
+    # set up the url and parameters
+    url <- "http://data.fcc.gov/api/block/find?format=json"
     latitude <- events$EVENTS.begin_lat[i]
     longitude <- events$EVENTS.begin_lon[i]
+    # run request
     request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
     tracts[i,] <- as.data.frame.list(request, stringsAsFactors = FALSE)
     #### insert pause of random # of  secs
-    Sys.sleep(abs(rnorm(1)*5)) 
+    Sys.sleep(abs(rnorm(1)*3)) 
     
   }
   
@@ -189,4 +187,8 @@ for(i in 1:length(files)){
   write.table(events, "data/1_events.csv",
               append = TRUE, sep = ",",
               row.names = FALSE, col.names = FALSE)
+
+  }
 }
+
+events_clean()
