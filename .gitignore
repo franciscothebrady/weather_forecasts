@@ -3,6 +3,3 @@
 .RData
 .Ruserdata
 *.Rproj
-data/*.gz
-data/*.Z
-.zip
