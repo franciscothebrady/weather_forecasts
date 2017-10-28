@@ -35,7 +35,7 @@ files <- list.files(path="data/", pattern="StormEvents_details-ftp_v1.0_d*",
 
 events_clean <- function(){
   for(i in 1:length(files)){
-  
+  print(paste("Current time is", Sys.time()))
   #-- get severe weather data with damage reports from NOAA
   #-- (https://www.ncdc.noaa.gov/swdi/#Intro)
   events <- as.data.frame(read.csv(files[i], stringsAsFactors = FALSE))
@@ -54,7 +54,8 @@ events_clean <- function(){
   events <- dplyr::filter(events, BEGIN_LAT >=  24 & BEGIN_LAT <= 50, 
                           BEGIN_LON >= -125 & BEGIN_LON <= -67)
   
-  print(events$BEGIN_DATE_TIME[1])
+  print(paste("working on ", lubridate::year(events$BEGIN_DATE_TIME[1]),"."))
+  
   dim(events)
   # Pad BEGIN_DAY and END_DAY with 0 before merging with
   # respective BEGIN_YEARMONTH and  END_YEARMONTH
@@ -142,51 +143,17 @@ events_clean <- function(){
                         "EVENTS.damage_unit")]
   
   
-  # check if lat/lon vars are actually numbers
+  # sanity check to see if lat/lon vars are actually numbers
   print(is.numeric(events$EVENTS.begin_lon))
   print(is.numeric(events$EVENTS.begin_lat))
-  # apply FCC Census Block API from: https://www.fcc.gov/general/census-block-conversions-api
-  # use the names of the lists as the names for the df to make
-  tracts <- data.frame(census.block = integer(),
-                     fcc.county.FIPS = integer(),
-                     fcc.county.name = character(),
-                     state.FIPS = integer(),
-                     state.code = integer(),
-                     state.name = character(),
-                     status     = character(),
-                     executionTime = integer(),
-                     stringsAsFactors = FALSE)
-  
-  nrain <- length(events$EVENTS.begin_lat)
-  #  something about the way this request works requires the df setup beforehand so it fills in as.data.frame nicely.
-  for (i in 1:nrain) {
-    # set up the url and parameters
-    url <- "http://data.fcc.gov/api/block/find?format=json"
-    latitude <- events$EVENTS.begin_lat[i]
-    longitude <- events$EVENTS.begin_lon[i]
-    # run request
-    request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
-    tracts[i,] <- as.data.frame.list(request, stringsAsFactors = FALSE)
-    #### insert pause of random # of  secs
-    Sys.sleep(abs(rnorm(1)*3)) 
-    
-  }
-  
-  events <- cbind(events, tracts)
-  rm(tracts)
-  
-  ### sanity check comparing original obs county and FCC API County
-  matches <- as.numeric(substr(events$fcc.county.FIPS, 3, 5)) == as.numeric(events$EVENTS.czfips)
-  table(as.numeric(substr(events$fcc.county.FIPS, 3, 5)) == as.numeric(events$EVENTS.czfips))
-  trues <- events[matches==TRUE,]
-  falses <- events[matches==FALSE,]
-  print(length(trues)/length(events))
-  # write to csv
+
+    # write to csv
   colnames <- names(events)
   write.table(colnames, "data/colnames.csv", append = FALSE)
-  write.table(events, "data/1_events.csv",
-              append = TRUE, sep = ",",
-              row.names = FALSE, col.names = FALSE)
+  
+  write.table(events, "data/1_events.csv", row.names = FALSE, col.names = FALSE, append = TRUE)
+  
+  print(paste("Finished with ",lubridate::year(events$BEGIN_DATE_TIME[1]),"."))
 
   }
 }
