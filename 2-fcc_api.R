@@ -12,10 +12,17 @@
 
 api_append <- function() {
   
-  header_names <- read.csv("data/colnames.csv", header = FALSE)
-  events <- fread("data/1_events")
+  library(dplyr)
+  library(lubridate)
   
-
+  # read in colnames and data
+  header_names <- read.csv("data/colnames.csv", header = FALSE)
+  events <- fread("data/1_events.csv", nrows = 2300)
+  header_names <- t(header_names)
+  # assign colnames to data
+  colnames(events) <- header_names
+  
+  print(head(events))
   
   #apply FCC Census Block API from: https://www.fcc.gov/general/census-block-conversions-api
   # set up empty df for the response
@@ -30,34 +37,38 @@ api_append <- function() {
                    stringsAsFactors = FALSE)
   
   # length of 1_events
-  nrain <- length(events$EVENTS.begin_lat)
+  n_events <- length(events$EVENTS.begin_lat)
   count <- 1
   # for loop to fill in request 
-  for (i in 1:nrain) {
+  for (i in 1:n_events) {
     # set up the url and parameters
     url <- "http://data.fcc.gov/api/block/find?format=json"
   
     # set up lat/lon
     latitude <- events$EVENTS.begin_lat[i]
     longitude <- events$EVENTS.begin_lon[i]
-  
     # run request
     request <- fromJSON(paste0(url, "&latitude=", latitude, "&longitude=", longitude, "&showall=false"))
+    
+    # print request
+    print(head(request))
+    
+    
     tracts[i,] <- as.data.frame.list(request, stringsAsFactors = FALSE)
 
+    print(head(tracts))
     count <- count + 1
     
     if (count==1000) {
       count <- 1
       Sys.sleep(3601)
     }
-    #### insert pause of 1 hour after every 1000 calls
-    # Sys.sleep(abs(rnorm(1)*3))
-    
+
   }
   
   events <- cbind(events, tracts)
   
+  print(tail(events))
   rm(tracts)
   
 }

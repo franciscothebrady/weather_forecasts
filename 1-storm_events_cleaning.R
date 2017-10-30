@@ -34,7 +34,9 @@ files <- list.files(path="data/", pattern="StormEvents_details-ftp_v1.0_d*",
                     full.names = T, recursive = FALSE)
 
 events_clean <- function(){
+  
   for(i in 1:length(files)){
+
   print(paste("Current time is", Sys.time()))
   #-- get severe weather data with damage reports from NOAA
   #-- (https://www.ncdc.noaa.gov/swdi/#Intro)
@@ -54,7 +56,7 @@ events_clean <- function(){
   events <- dplyr::filter(events, BEGIN_LAT >=  24 & BEGIN_LAT <= 50, 
                           BEGIN_LON >= -125 & BEGIN_LON <= -67)
   
-  print(paste("working on ", lubridate::year(events$BEGIN_DATE_TIME[1]),"."))
+  print(paste("Working on", events$YEAR[1],"events."))
   
   dim(events)
   # Pad BEGIN_DAY and END_DAY with 0 before merging with
@@ -108,9 +110,6 @@ events_clean <- function(){
                            EVENTS.czfips=CZ_FIPS,
                            EVENTS.czname=CZ_NAME,
                            EVENTS.wfo=WFO,
-                           EVENTS.flood_cause=FLOOD_CAUSE,
-                           EVENTS.hurricane_category=CATEGORY,
-                           EVENTS.tornado_F_scale=TOR_F_SCALE,
                            EVENTS.begin_lat=BEGIN_LAT,
                            EVENTS.begin_lon=BEGIN_LON,
                            EVENTS.end_lat=END_LAT,
@@ -131,9 +130,6 @@ events_clean <- function(){
                         "EVENTS.czfips",
                         "EVENTS.czname",
                         "EVENTS.wfo",
-                        "EVENTS.flood_cause",
-                        "EVENTS.hurricane_category",
-                        "EVENTS.tornado_F_scale",
                         "EVENTS.begin_lat",
                         "EVENTS.begin_lon",
                         "EVENTS.end_lat",
@@ -149,11 +145,11 @@ events_clean <- function(){
 
     # write to csv
   colnames <- names(events)
-  write.table(colnames, "data/colnames.csv", append = FALSE)
+  write.table(colnames, "data/colnames.csv", append = FALSE, row.names = FALSE, col.names = FALSE)
   
   write.table(events, "data/1_events.csv", row.names = FALSE, col.names = FALSE, append = TRUE)
   
-  print(paste("Finished with ",lubridate::year(events$BEGIN_DATE_TIME[1]),"."))
+  print(paste("Finished with", lubridate::year(events$EVENTS.begin_date[1]), "events."))
 
   }
 }
