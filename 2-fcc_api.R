@@ -17,7 +17,7 @@ api_append <- function() {
   
   # read in colnames and data
   header_names <- read.csv("data/colnames.csv", header = FALSE)
-  events <- fread("data/1_events.csv", nrows = 2300)
+  events <- fread("data/1_events.csv")
   header_names <- t(header_names)
   # assign colnames to data
   colnames(events) <- header_names
