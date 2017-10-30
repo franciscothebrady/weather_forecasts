@@ -69,7 +69,18 @@ api_append <- function() {
   events <- cbind(events, tracts)
   
   print(tail(events))
-  rm(tracts)
+  
+  #####
+  #####
+  # add some stuff here.
+  # use the identical thing to see how far off some of the API returns are
+  #  ### sanity check comparing original obs county and FCC API County		 
+  # matches <- as.numeric(substr(events$fcc.county.FIPS, 3, 5)) == as.numeric(events$EVENTS.czfips)		
+  # table(as.numeric(substr(events$fcc.county.FIPS, 3, 5)) == as.numeric(events$EVENTS.czfips))		    
+  # trues <- events[matches==TRUE,]		   
+  # falses <- events[matches==FALSE,]
+  # rm(tracts)
+  
   
 }
 
