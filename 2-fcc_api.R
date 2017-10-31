@@ -68,19 +68,22 @@ api_append <- function() {
   
   events <- cbind(events, tracts)
   
+  # remove some the extra columns returned by the API call
+  events$status <- NULL
+  events$executionTime <- NULL
+  
   print(tail(events))
   
-  #####
-  #####
-  # add some stuff here.
-  # use the identical thing to see how far off some of the API returns are
-  #  ### sanity check comparing original obs county and FCC API County		 
-  # matches <- as.numeric(substr(events$fcc.county.FIPS, 3, 5)) == as.numeric(events$EVENTS.czfips)		
-  # table(as.numeric(substr(events$fcc.county.FIPS, 3, 5)) == as.numeric(events$EVENTS.czfips))		    
-  # trues <- events[matches==TRUE,]		   
-  # falses <- events[matches==FALSE,]
-  # rm(tracts)
+  # sanity check: compare the fips code returned by the API to the original fips from the dataset
+  matches <- as.numeric(substr(events$fcc.county.FIPS, 3, 5)) == as.numeric(events$EVENTS.czfips)		
+  table(as.numeric(substr(events$fcc.county.FIPS, 3, 5)) == as.numeric(events$EVENTS.czfips))		    
   
+  print(paste0(round((sum(matches)/nrow(events))*100,3),"% matched correctly"))
+  
+  # write to csv
+  print("writing to .csv")
+  write.csv(colnames, "data/2_fcc.api.csv", append = FALSE, row.names = FALSE)
   
 }
 
+api_append()
