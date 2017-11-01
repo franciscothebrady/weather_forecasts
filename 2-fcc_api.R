@@ -67,7 +67,7 @@ api_append <- function() {
   }
   
   events <- cbind(events, tracts)
-  
+
   # remove some the extra columns returned by the API call
   events$status <- NULL
   events$executionTime <- NULL
@@ -79,6 +79,7 @@ api_append <- function() {
   table(as.numeric(substr(events$fcc.county.FIPS, 3, 5)) == as.numeric(events$EVENTS.czfips))		    
   
   print(paste0(round((sum(matches)/nrow(events))*100,3),"% matched correctly"))
+  
   
   # write to csv
   print("writing to .csv")

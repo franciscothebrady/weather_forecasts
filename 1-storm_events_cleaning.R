@@ -51,6 +51,9 @@ events_clean <- function(){
   # filter out obs without lat/lon
   events <- dplyr::filter(events, BEGIN_LAT != "NA")
 
+  # deal with strenge montana issue.
+  events$BEGIN_LAT[events$STATE=="MONTANA" & events$BEGIN_LAT >= 49] <- 48.999
+  
   dim(events)
   # and events outside of CONUS (minlon, minlat),(maxlon, maxlat) : (-124.848974, 24.396308) - (-66.885444, 49.384358)
   events <- dplyr::filter(events, BEGIN_LAT >=  24 & BEGIN_LAT <= 50, 
