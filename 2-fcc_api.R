@@ -57,12 +57,12 @@ api_append <- function() {
     tracts[i,] <- as.data.frame.list(request, stringsAsFactors = FALSE)
 
     print(head(tracts))
-    count <- count + 1
-    
-    if (count==1000) {
-      count <- 1
-      Sys.sleep(3601)
-    }
+    # count <- count + 1
+    # 
+    # if (count==1000) {
+    #   count <- 1
+    #   Sys.sleep(3601)
+    #}
 
   }
   
