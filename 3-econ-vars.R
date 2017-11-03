@@ -37,6 +37,12 @@ series.ids <- separate(series.ids, county, c("county","state"), sep = ",", remov
 series.ids$state[323] <- "DC"
 series.ids$state[90] <- "AK"
 
+# now we have the ids for all the counties, but they are not in the format to return the 
+# Local Area Unemployment series. We need to add "LAU" as a prefix for local area (not seasonally adjusted - U)
+# and the suffix "03" for unemployment. more info here: https://www.bls.gov/help/hlpforma.htm#LA
+
+series.ids$series.id <- paste0("LAU",series.ids$series.id,"03")
+
 # now filter series ids for counties that are in the events db
 events$fcc.county.name
 series.ids$county
@@ -55,7 +61,29 @@ series.ids$county <- tolower(series.ids$county)
 series.ids$state <- tolower(series.ids$state)
 
 # select only series.id counties in events dataset to buld request
-test <- base::merge(events, series.ids, by.x = c("state.code","fcc.county.name"), by.y = c("state","county"))
+events_nseries <- base::merge(events, series.ids, by.x = c("state.code","fcc.county.name"), by.y = c("state","county"))
+
+# use blsAPI, from: https://www.bls.gov/developers/api_r.htm
+library(devtools)
+#install_github("mikeasilva/blsAPI")
+library(blsAPI)
+response_df <- NULL
+
+# payload creates a list of requests and parameters
+for (i in 1:28:length(unique(events_nseries$series.id))) {
+  payload <- list(
+    'seriesid'=c(unique(events_nseries$series.id)[i:i+28]), #series.ids$series.id[1:1000]
+    'startyear'=2010,
+    'endyear'=2016,
+    'catalog'=FALSE,
+    'registrationKey'='92882bc0dd354a94b65f8b8a232a0b42')
+  
+  # which is passed to the blsAPI function, 2 means version 2 of the API (requires key), TRUE means return df
+  response <- blsAPI(payload, 2, TRUE)
+  response_df <- rbind(response_df, response)
+}
+
+
 
 #   -- get real GDP by MSA for 2010-2016
 #   -- (https://www.bea.gov/API/bea_web_service_api_user_guide.htm)   check docs for YEAR
