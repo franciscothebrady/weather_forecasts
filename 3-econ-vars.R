@@ -12,23 +12,50 @@
 setwd("~/weather_forecasts/")
 
 #  load libraries
-library(maps)
-library(plyr)
 library(dplyr)
-library(dtplyr)
-library(stringr)
-library(purrr)
-library(rnoaa)
-library(bea.R)
-library(geosphere)
-library(weathermetrics)
-library(jsonlite)
-library(httr)
+library(readr)
 library(lubridate)
-
+library(reshape2)
+library(stringr)
+library(tidyr)
 # read in 2_fcc.api.csv
-events <- read.csv("data/2_fcc.api.csv", header = TRUE)
+events <- read.csv("data/2_fcc.api.csv", header = TRUE, stringsAsFactors = FALSE)
 
+# read in BLS series ids for all counties
+# we need to do some text cleaning, then we should be able to get a df of all the ids and counties
+# then we can narrow down to only the counties and ids we need
+# then we can pipe those into the BLS api to get the unemployment statistics
+cols_fwf <- readr::fwf_empty("data/bls_series_ids.txt")
+series.ids <- read_fwf("data/bls_series_ids.txt", col_positions = cols_fwf)
+#View(series.ids)
+series.ids <- select(series.ids, X3, X4)
+names(series.ids) <- c("series.id","county")
+# separate states from counties
+series.ids <- separate(series.ids, county, c("county","state"), sep = ",", remove = TRUE) 
+# Warning message: Too few values at 2 locations: 90, 323 
+# this is a census equivalent and DC, fix these.
+series.ids$state[323] <- "DC"
+series.ids$state[90] <- "AK"
+
+# now filter series ids for counties that are in the events db
+events$fcc.county.name
+series.ids$county
+
+# do some string massaging
+series.ids$county <- gsub("\\bCounty\\b", "", series.ids$county)
+series.ids$county <- trimws(series.ids$county, which = "both")
+series.ids$state <- trimws(series.ids$state, which = "both")
+events$fcc.county.name <- trimws(events$fcc.county.name, which = "both")
+events$state.name <- tolower(events$state.name)
+events$EVENTS.state <- tolower(events$EVENTS.state)
+events$fcc.county.name <- tolower(events$fcc.county.name)
+events$EVENTS.czname <- tolower(events$EVENTS.czname)
+events$state.code <- tolower(events$state.code)
+series.ids$county <- tolower(series.ids$county)
+series.ids$state <- tolower(series.ids$state)
+
+# select only series.id counties in events dataset to buld request
+test <- base::merge(events, series.ids, by.x = c("state.code","fcc.county.name"), by.y = c("state","county"))
 
 #   -- get real GDP by MSA for 2010-2016
 #   -- (https://www.bea.gov/API/bea_web_service_api_user_guide.htm)   check docs for YEAR
