@@ -19,7 +19,8 @@ library(reshape2)
 library(stringr)
 library(tidyr)
 # read in 2_fcc.api.csv
-events <- read.csv("data/2_fcc.api.csv", header = TRUE, stringsAsFactors = FALSE)
+events <- read.csv("data/2_fcc.api.csv", header = TRUE, stringsAsFactors = FALSE, 
+                   fileEncoding = "UTF-8")
 
 # read in BLS series ids for all counties
 # we need to do some text cleaning, then we should be able to get a df of all the ids and counties
@@ -84,28 +85,3 @@ for (i in 1:28:length(unique(events_nseries$series.id))) {
 }
 
 
-
-#   -- get real GDP by MSA for 2010-2016
-#   -- (https://www.bea.gov/API/bea_web_service_api_user_guide.htm)   check docs for YEAR
-  beaSpecs <- list(
-    "UserID" = # ,
-    "method" = "GetData",
-    "datasetname" = "RegionalProduct",
-    "Component" = "RGDP_MAN",
-    "IndustryId" = "1",
-    "GeoFIPS" = "MSA",
-    "Year" = "2010,2011,2012,2013,2014,2015,2016",   
-    "ResultFormat" = "json"                          
-  )
-  gdp_msa <- beaGet(beaSpecs, asWide = FALSE)
-  rm(beaSpecs)
-
-# read in counties in each MSA list
-  
-# merge in MABLE data
-  
-# think about other economic variables to include. 
-# unemployment?
-# jobs claims?
-# monthly something?
-  
