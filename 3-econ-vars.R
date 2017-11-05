@@ -84,4 +84,5 @@ for (i in 1:28:length(unique(events_nseries$series.id))) {
   response_df <- rbind(response_df, response)
 }
 
-
+print("writing to .csv")
+write.csv(events, "data/bls_vars.csv", row.names = FALSE)
