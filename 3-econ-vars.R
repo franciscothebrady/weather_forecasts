@@ -68,12 +68,14 @@ events_nseries <- base::merge(events, series.ids, by.x = c("state.code","fcc.cou
 library(devtools)
 #install_github("mikeasilva/blsAPI")
 library(blsAPI)
+
 response_df <- NULL
+counties <- unique(events_nseries$series.id)
 
 # payload creates a list of requests and parameters
-for (i in 1:28:length(unique(events_nseries$series.id))) {
+for (i in 1:length(counties)) {
   payload <- list(
-    'seriesid'=c(unique(events_nseries$series.id)[i:i+28]), #series.ids$series.id[1:1000]
+    'seriesid'=c(counties[i]), #series.ids$series.id[1:1000]
     'startyear'=2010,
     'endyear'=2016,
     'catalog'=FALSE,
@@ -82,6 +84,13 @@ for (i in 1:28:length(unique(events_nseries$series.id))) {
   # which is passed to the blsAPI function, 2 means version 2 of the API (requires key), TRUE means return df
   response <- blsAPI(payload, 2, TRUE)
   response_df <- rbind(response_df, response)
+  
+  # count <- count + 1
+  # 
+  # if (count==25) {
+  #   count <- 1
+  #   Sys.sleep(20)
+  # }
 }
 
 print("writing to .csv")
