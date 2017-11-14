@@ -93,5 +93,12 @@ for (i in 1:length(counties)) {
   # }
 }
 
+# write the whole thing to csv
+print("writing to 'county_unemp.csv'")
+write.csv(response_df, "data/county_unemp.csv", row.names = FALSE)
+## TODO
+# probably filter response_df down to just the dates we need. maybe t+1 and t-1 rates too
+# merge with events df
+# write to csv for the next step!
 print("writing to .csv")
 write.csv(events, "data/bls_vars.csv", row.names = FALSE)
