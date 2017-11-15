@@ -11,9 +11,10 @@
 # 6. cbinds the relevant results to the dataset and writes to csv.
 
 api_append <- function() {
-  
+  library(data.table)
   library(dplyr)
   library(lubridate)
+  library(jsonlite)
   
   # read in colnames and data
   header_names <- read.csv("data/colnames.csv", header = FALSE)
@@ -65,7 +66,8 @@ api_append <- function() {
     #}
 
   }
-  
+  print("writing tracts to .csv")
+  write.csv(events, "data/census_tracts.csv", row.names = FALSE)
   events <- cbind(events, tracts)
 
   # remove some the extra columns returned by the API call
@@ -83,7 +85,7 @@ api_append <- function() {
   
   # write to csv
   print("writing to .csv")
-  write.csv(events, "data/2_fcc.api.csv", row.names = FALSE)
+  write.csv(events, "data/2_fcc_api.csv", row.names = FALSE)
   
 }
 
