@@ -61,7 +61,7 @@ events$state.code <- tolower(events$state.code)
 series.ids$county <- tolower(series.ids$county)
 series.ids$state <- tolower(series.ids$state)
 
-# select only series.id counties in events dataset to buld request
+# select only series.id counties in events dataset to build request
 events_nseries <- base::merge(events, series.ids, by.x = c("state.code","fcc.county.name"), by.y = c("state","county"))
 
 # use blsAPI, from: https://www.bls.gov/developers/api_r.htm
@@ -96,6 +96,16 @@ for (i in 1:length(counties)) {
 # write the whole thing to csv
 print("writing to 'county_unemp.csv'")
 write.csv(response_df, "data/county_unemp.csv", row.names = FALSE)
+
+# clean up response df
+names(response_df) <- c("yyyy","mm","month","unemp","seriesID")
+response_df$mm <- gsub("[A-Z]","",response_df$mm)
+# full date
+response_df$date <- lubridate::ymd(paste0(response_df$yyyy,"-",response_df$mm,"-","01"))
+
+# create a date vector of unique dates
+event_dates <- unique(events_nseries$)
+
 ## TODO
 # probably filter response_df down to just the dates we need. maybe t+1 and t-1 rates too
 # merge with events df
