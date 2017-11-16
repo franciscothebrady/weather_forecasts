@@ -7,8 +7,6 @@
 # this is the Local Area Unemployment Statistics Series decoder page: https://www.bls.gov/help/hlpforma.htm#LA
 # here is the table of contents for BLS statistics: https://www.bls.gov/help/hlpforma.htm#OEUS
   
-
-
 setwd("~/weather_forecasts/")
 
 #  load libraries
@@ -18,9 +16,11 @@ library(lubridate)
 library(reshape2)
 library(stringr)
 library(tidyr)
-# read in 2_fcc.api.csv
-events <- read.csv("data/2_fcc.api.csv", header = TRUE, stringsAsFactors = FALSE, 
-                   fileEncoding = "UTF-8")
+# read in 2_fcc_api.csv
+events <- read.csv("data/2_fcc_api.csv", header = TRUE, stringsAsFactors = FALSE, fileEncoding = "UTF-8")
+
+# Encoding(events$state.name) still says "unknown", not sure why :/
+
 
 # read in BLS series ids for all counties
 # we need to do some text cleaning, then we should be able to get a df of all the ids and counties
@@ -44,9 +44,19 @@ series.ids$state[90] <- "AK"
 
 series.ids$series.id <- paste0("LAU",series.ids$series.id,"03")
 
-# now filter series ids for counties that are in the events db
-events$fcc.county.name
-series.ids$county
+# how can we merge these? 
+events$EVENTS.fips
+events$fcc.county.FIPS
+###
+### note to self: here is where we need to figure out what to merge on. 
+### need to subset from series.id, which has fips code in it, and match with
+### (events$EVENTS.fips[i]*1000) + events$EVENTS.czfips[i], which is the fips code.
+
+
+
+# series.ids[200,]
+# substr(x, start, stop)
+# substr(series.ids$series.id[447], 6, 10) 
 
 # do some string massaging
 series.ids$county <- gsub("\\bCounty\\b", "", series.ids$county)
@@ -62,6 +72,9 @@ series.ids$county <- tolower(series.ids$county)
 series.ids$state <- tolower(series.ids$state)
 
 # select only series.id counties in events dataset to build request
+#
+#
+#
 events_nseries <- base::merge(events, series.ids, by.x = c("state.code","fcc.county.name"), by.y = c("state","county"))
 
 # use blsAPI, from: https://www.bls.gov/developers/api_r.htm

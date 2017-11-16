@@ -85,7 +85,7 @@ api_append <- function() {
   
   # write to csv
   print("writing to .csv")
-  write.csv(events, "data/2_fcc_api.csv", row.names = FALSE)
+  write.csv(events, "data/2_fcc_api.csv", row.names = FALSE, fileEncoding = "UTF-8")
   
 }
 
