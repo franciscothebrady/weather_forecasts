@@ -45,18 +45,7 @@ series.ids$state[90] <- "AK"
 series.ids$series.id <- paste0("LAU",series.ids$series.id,"03")
 
 # how can we merge these? 
-events$EVENTS.fips
-events$fcc.county.FIPS
-###
-### note to self: here is where we need to figure out what to merge on. 
-### need to subset from series.id, which has fips code in it, and match with
-### (events$EVENTS.fips[i]*1000) + events$EVENTS.czfips[i], which is the fips code.
-
-
-
-# series.ids[200,]
-# substr(x, start, stop)
-# substr(series.ids$series.id[447], 6, 10) 
+events$fcc.county.FIPS <- sprintf("%05d", events$fcc.county.FIPS)
 
 # do some string massaging
 series.ids$county <- gsub("\\bCounty\\b", "", series.ids$county)
@@ -72,10 +61,10 @@ series.ids$county <- tolower(series.ids$county)
 series.ids$state <- tolower(series.ids$state)
 
 # select only series.id counties in events dataset to build request
-#
-#
-#
-events_nseries <- base::merge(events, series.ids, by.x = c("state.code","fcc.county.name"), by.y = c("state","county"))
+series.ids$fcc.county.FIPS <- substring(series.ids$series.id, 6, 10)
+
+# merge on fcc.county fips
+events <- merge(events, series.ids, by = "fcc.county.FIPS")
 
 # use blsAPI, from: https://www.bls.gov/developers/api_r.htm
 library(devtools)
@@ -83,12 +72,14 @@ library(devtools)
 library(blsAPI)
 
 response_df <- NULL
-counties <- unique(events_nseries$series.id)
+count <- 1
+counties <- unique(events$series.id)
+counties <- split(counties, rep(1:3, 475))
 
 # payload creates a list of requests and parameters
-for (i in 1:length(counties)) {
+for (i in 1:length(counties[[i]])) {
   payload <- list(
-    'seriesid'=c(counties[i]), #series.ids$series.id[1:1000]
+    'seriesid'=c(counties[[i]][i]), #series.ids$series.id[1:1000]
     'startyear'=2010,
     'endyear'=2016,
     'catalog'=FALSE,
@@ -98,12 +89,14 @@ for (i in 1:length(counties)) {
   response <- blsAPI(payload, 2, TRUE)
   response_df <- rbind(response_df, response)
   
-  # count <- count + 1
-  # 
-  # if (count==25) {
-  #   count <- 1
-  #   Sys.sleep(20)
-  # }
+  count <- count + 1
+
+  if (count==length(counties[[i]])) {
+    break{
+      print("you have reached the end of this list, please continue from another IP address")
+      count <- 1
+      }
+  }
 }
 
 # write the whole thing to csv
@@ -117,10 +110,10 @@ response_df$mm <- gsub("[A-Z]","",response_df$mm)
 response_df$date <- lubridate::ymd(paste0(response_df$yyyy,"-",response_df$mm,"-","01"))
 
 # create a date vector of unique dates
-event_dates <- unique(events_nseries$)
+event_dates <- unique(events$EVENTS.begin_date)
 
-## TODO
-# probably filter response_df down to just the dates we need. maybe t+1 and t-1 rates too
+#TODO
+# filter by month and year for unemp observations we want. 
 # merge with events df
 # write to csv for the next step!
 print("writing to .csv")
