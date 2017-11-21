@@ -77,9 +77,9 @@ counties <- unique(events$series.id)
 counties <- split(counties, rep(1:3, 475))
 
 # payload creates a list of requests and parameters
-for (i in 1:length(counties[[i]][j])) {
+for (i in 1:length(counties[[i]])) {
   payload <- list(
-    'seriesid'=c(counties[[i]][j]), #series.ids$series.id[1:1000]
+    'seriesid'= counties[[i]][i], #series.ids$series.id[1:1000]
     'startyear'=2010,
     'endyear'=2016,
     'catalog'=FALSE,
@@ -92,11 +92,12 @@ for (i in 1:length(counties[[i]][j])) {
   count <- count + 1
 
   if (count==length(counties[[i]])) {
+    answer <- readline(prompt = "you have reached the end of this list, if you would like to continue, enter 'Y'")
+    count <- 1
+  }
+  else {
     break
-    print("you have reached the end of this list, please continue from another IP address")
-      readline("press any key to continue")
-      count <- 1
-    }
+  }
 }
 
 
@@ -106,7 +107,7 @@ write.csv(response_df, "data/county_unemp.csv", row.names = FALSE)
 
 # clean up response df
 names(response_df) <- c("yyyy","mm","month","unemp","seriesID")
-response_df$mm <- gsub("[A-Z]","",response_df$mm)
+# response_df$mm <- gsub("[A-Z]","", response_df$mm)
 # full date
 response_df$date <- lubridate::ymd(paste0(response_df$yyyy,"-",response_df$mm,"-","01"))
 
