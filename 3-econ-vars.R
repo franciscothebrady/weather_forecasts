@@ -77,9 +77,9 @@ counties <- unique(events$series.id)
 counties <- split(counties, rep(1:3, 475))
 
 # payload creates a list of requests and parameters
-for (i in 1:length(counties[[i]])) {
+for (i in 1:length(counties[[i]][j])) {
   payload <- list(
-    'seriesid'=c(counties[[i]][i]), #series.ids$series.id[1:1000]
+    'seriesid'=c(counties[[i]][j]), #series.ids$series.id[1:1000]
     'startyear'=2010,
     'endyear'=2016,
     'catalog'=FALSE,
@@ -92,12 +92,13 @@ for (i in 1:length(counties[[i]])) {
   count <- count + 1
 
   if (count==length(counties[[i]])) {
-    break{
-      print("you have reached the end of this list, please continue from another IP address")
+    break
+    print("you have reached the end of this list, please continue from another IP address")
+      readline("press any key to continue")
       count <- 1
-      }
-  }
+    }
 }
+
 
 # write the whole thing to csv
 print("writing to 'county_unemp.csv'")
