@@ -77,30 +77,30 @@ counties <- unique(events$series.id)
 counties <- split(counties, rep(1:3, 475))
 
 # payload creates a list of requests and parameters
-for (i in 1:length(counties[[i]])) {
-  payload <- list(
-    'seriesid'= counties[[i]][i], #series.ids$series.id[1:1000]
-    'startyear'=2010,
-    'endyear'=2016,
-    'catalog'=FALSE,
-    'registrationKey'='92882bc0dd354a94b65f8b8a232a0b42')
+for (j in 1:length(counties)) {
+  for (i in 1:length(counties[[j]])) {
+    payload <- list(
+      'seriesid'= counties[[j]][i], #series.ids$series.id[1:1000]
+      'startyear'=2010,
+      'endyear'=2016,
+      'catalog'=FALSE,
+      'registrationKey'='92882bc0dd354a94b65f8b8a232a0b42')
+    
+    # which is passed to the blsAPI function, 2 means version 2 of the API (requires key), TRUE means return df
+    response <- blsAPI(payload, 2, TRUE)
+    response_df <- rbind(response_df, response)
+    
+    count <- count + 1
   
-  # which is passed to the blsAPI function, 2 means version 2 of the API (requires key), TRUE means return df
-  response <- blsAPI(payload, 2, TRUE)
-  response_df <- rbind(response_df, response)
-  
-  count <- count + 1
-
-  if (count==length(counties[[i]])) {
-    answer <- readline(prompt = "you have reached the end of this list, if you would like to continue, enter 'Y'")
-    count <- 1
-  }
-  else {
-    break
+    if (count==length(counties[[j]])) {
+      
+      write.csv(response_df, paste0("data/list",j,".csv"), row.names = FALSE, fileEncoding = "UTF-8")
+      
+      answer <- readline(prompt = "you have reached the end of this list, if you would like to write , enter 'Y' ")
+      count <- 1
+    }
   }
 }
-
-
 # write the whole thing to csv
 print("writing to 'county_unemp.csv'")
 write.csv(response_df, "data/county_unemp.csv", row.names = FALSE)
