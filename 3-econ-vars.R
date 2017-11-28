@@ -96,7 +96,7 @@ for (j in 1:length(counties)) {
       
       write.csv(response_df, paste0("data/list",j,".csv"), row.names = FALSE, fileEncoding = "UTF-8")
       
-      answer <- readline(prompt = "you have reached the end of this list, press any key to wait 24 hours and then resume API call")
+      print("you have reached the end of this list, now we are waiting 24 hours (86401 seconds) to resume the API call")
       print(Sys.time())
       Sys.sleep(86401)
       count <- 1
