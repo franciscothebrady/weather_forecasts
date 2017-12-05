@@ -65,6 +65,8 @@
   
   # merge on fcc.county fips
   events <- merge(events, series.ids, by = "fcc.county.FIPS")
+  # write to csv so we can use in the next script
+  write.csv(events, "data/3_econ-vars.csv", row.names = FALSE, fileEncoding = "UTF-8")
   
   # use blsAPI, from: https://www.bls.gov/developers/api_r.htm
   library(devtools)
