@@ -105,22 +105,22 @@
       }
     }
   }
+  
+  # clean up response df
+  names(response_df) <- c("yyyy","mm","month","unemp","series.id")
+  # full date
+  response_df$date <- lubridate::ymd(paste0(response_df$yyyy,"-",response_df$mm,"-","01"))
+  # clean up 
+  bls_vars <- select(response_df, "date", "series.id", "unemp")
+  bls_vars$fcc.county.FIPS <- substring(bls_vars$series.id, 6, 10)
+  
+  county_st_names <- select(events, "fcc.county.FIPS", "series.id", "fcc.county.name", "state.code")
+  # merge in event location info with bls
+  bls_vars <- merge(bls_vars, county_st_names, by = c("fcc.county.FIPS", "series.id"))
+  
   # write the whole thing to csv
   print("writing to 'county_unemp.csv'")
   write.csv(response_df, "data/county_unemp.csv", row.names = FALSE)
   
-  # clean up response df
-  names(response_df) <- c("yyyy","mm","month","unemp","seriesID")
-  # response_df$mm <- gsub("[A-Z]","", response_df$mm)
-  # full date
-  response_df$date <- lubridate::ymd(paste0(response_df$yyyy,"-",response_df$mm,"-","01"))
-  
-  # create a date vector of unique dates
-  event_dates <- unique(events$EVENTS.begin_date)
-  
-  #TODO
-  # filter by month and year for unemp observations we want. 
-  # merge with events df
-  # write to csv for the next step!
   print("writing to .csv")
-  write.csv(events, "data/bls_vars.csv", row.names = FALSE)
+  write.csv(bls_vars, "data/bls_vars.csv", row.names = FALSE)
