@@ -118,7 +118,10 @@
   
   # write the whole thing to csv
   print("writing to 'county_unemp.csv'")
-  write.csv(response_df, "data/county_unemp.csv", row.names = FALSE)
+  write.csv(response_df, "data/raw_county_unemp.csv", row.names = FALSE)
   
+  # for some reason the API response included duplicate rows. remove these then write to csv.
+  bls_vars <- unique(bls_vars[, 1:5])
+
   print("writing to .csv")
   write.csv(bls_vars, "data/bls_vars.csv", row.names = FALSE)
