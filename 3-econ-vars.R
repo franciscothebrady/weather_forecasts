@@ -2,8 +2,8 @@
   # 3 - add economic variables
   # WHAT THIS PROGRAM DOES:
   # 1. reads in all the storm event files from 2010-2016
-  # 2. merge in some economic data that is relevant and at a decent frequency
-  # 3. ???
+  # 2. grab unemp data from the BLS
+  # 3. merge the unemployment data into the events data
   # this is the Local Area Unemployment Statistics Series decoder page: https://www.bls.gov/help/hlpforma.htm#LA
   # here is the table of contents for BLS statistics: https://www.bls.gov/help/hlpforma.htm#OEUS
     
@@ -18,9 +18,6 @@
   library(tidyr)
   # read in 2_fcc_api.csv
   events <- read.csv("data/2_fcc_api.csv", header = TRUE, stringsAsFactors = FALSE, fileEncoding = "UTF-8")
-  
-  # Encoding(events$state.name) still says "unknown", not sure why :/
-  
   
   # read in BLS series ids for all counties
   # we need to do some text cleaning, then we should be able to get a df of all the ids and counties
@@ -41,7 +38,6 @@
   # now we have the ids for all the counties, but they are not in the format to return the 
   # Local Area Unemployment series. We need to add "LAU" as a prefix for local area (not seasonally adjusted - U)
   # and the suffix "03" for unemployment. more info here: https://www.bls.gov/help/hlpforma.htm#LA
-  
   series.ids$series.id <- paste0("LAU",series.ids$series.id,"03")
   
   # how can we merge these? 

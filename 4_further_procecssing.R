@@ -19,6 +19,15 @@ events <- read.csv("data/3_econ-vars.csv", header = TRUE, stringsAsFactors = FAL
 # read in bls unemployment figures (note: we can also use the original response_df, saved as county_unemp.csv,
 # this ones just a little cleaner)
 bls_vars <- read.csv("data/bls_vars.csv", header = TRUE, stringsAsFactors = FALSE)
+test <- filter(events, EVENTS.damage_value > 10000)
+bls_test <- bls_vars %>% filter(year(date)==year(test$EVENTS.end_date), series.id==test$series.id) %>% 
+  arrange(date) 
+bls_test <- unique(bls_test)
+plot(as.Date(bls_test$date), bls_test$unemp, type = "l")
+
+
+# find unique locations and dates for events
+locations <- unique(select(events, "fcc.county.FIPS", "fcc.county.name", "state"))
 
 # figure out what to do next
 # options
