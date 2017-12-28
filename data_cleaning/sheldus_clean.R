@@ -9,9 +9,10 @@ library(readr)
 library(lubridate)
 #install.packages("quantmod")
 library(quantmod)
+library(reshape2)
 
 setwd("~/weather_forecasts/")
-# load in sheldus data
+#### load in sheldus data ####
 # all 50 states, [fill this in with the rest of the SHELDUS parameters]
 A1 <- read_csv("~/weather_forecasts/data/SHELDUS/UID12986f_AGG_A.csv")
 A2 <- read_csv("~/weather_forecasts/data/SHELDUS/UID12986f_AGG_A2.csv")
@@ -20,15 +21,21 @@ A4 <- read_csv("~/weather_forecasts/data/SHELDUS/UID12986f_AGG_A4.csv")
 A5 <- read_csv("~/weather_forecasts/data/SHELDUS/UID12986f_AGG_A5.csv")
 # combine all the files together
 sheldus <- rbind(A1, A2, A3, A4, A5)
-
-sheldus$`County FIPS` <- substring(sheldus$`County FIPS`, 2, 6)
-
+names(sheldus)
+names(sheldus) <- c("state","county","county.FIPS", "year", "month", "crop.dmg", "adj.09.crop.dmg","crop.09.dmg.pcapita",
+                    "prop.dmg","adj.09.prop.dmg","prop.09.dmg.pcapita","inj","inj.pcapita","fatal","fatal.pcapita",
+                    "duration.days","fatal.duration","inj.duration","prop.dmg.duration","crop.dmg.duration","records")
+sheldus$county.FIPS <- substring(sheldus$county.FIPS, 2, 6)
+sheldus$state <- tolower(sheldus$state)
 # combine prop and crop values for total damages
-sheldus$total_adj_2009_dmg <- sheldus$`CropDmg(ADJ 2009)` + sheldus$`PropertyDmg(ADJ 2009)`
+sheldus$adj.dmg.tot <- sheldus$adj.09.crop.dmg + sheldus$adj.09.prop.dmg
 
 # read in events data for merging
 events <- read_csv("data/3_econ-vars.csv")
-events$fcc.county.FIPS
+names(sheldus)
+names(events)
+
+
 events$Year <- as.integer(year(events$EVENTS.begin_date))
 events$Month <- as.integer(month(events$EVENTS.begin_date))
 
@@ -37,28 +44,73 @@ getSymbols("CPIAUCSL", src='FRED') #Consumer Price Index for All Urban Consumers
 avg.cpi <- apply.yearly(CPIAUCSL, mean)
 
 cf <- avg.cpi/as.numeric(avg.cpi['2009'])
-#cf <- as.data.frame(cf)
-events$adjusted2009damage_value <- data.frame(adjusted2009damage_value= matrix(unlist(lapply(events$Year, function(x){
+
+# something is going on here 
+events$adjusted2009damage_value <- matrix(unlist(lapply(events$Year, function(x){
   as.data.frame(cf$CPIAUCSL[match(x, year(cf[,1]))])[,1]
-  })),nrow=8448,byrow=T)) * events$EVENTS.damage_value
+  })), nrow=8448,byrow=T)[,1] * events$EVENTS.damage_value * 10^events_sheldus$EVENTS.damage_magnitude
 
 
-events_sheldus <- merge(x = events, y = sheldus, by.x = c("Year", "Month", "fcc.county.FIPS"),
-                        by.y = c("Year", "Month", "County FIPS"))
+events_sheldus <- inner_join(x = events, y = sheldus, by = c("Year"="year", "Month"="month", "fcc.county.FIPS"="county.FIPS",
+                                                               "state.name"="state"))
+events_sheldus$adj.dmg.pcapita <- events_sheldus$crop.09.dmg.pcapita + events_sheldus$prop.09.dmg.pcapita
 
-
-diff <- as.data.frame(events_sheldus$total_adj_2009_dmg - 
+diff <- as.data.frame(events_sheldus$adj.dmg.tot - 
                         (events_sheldus$adjusted2009damage_value*10^events_sheldus$EVENTS.damage_magnitude))
-events_sheldus[diff == min(diff),]
+biggest_diff <- events_sheldus[diff == min(diff),]
 summary(diff)
 
+# # get the bls vars into the right format
+# bls_melt <- melt(bls_vars, id.vars = c("series.id", "date", "fcc.county.FIPS","fcc.county.name"))
+# 
+# bls_cast <- dcast(bls_vars, date ~  series.id, value.var = "unemp")
+bls_vars$Year <- lubridate::year(bls_vars$date)
+bls_vars$Month <- lubridate::month(bls_vars$date)
+names(bls_vars)
+str(events_sheldus$series.id)
+str(bls_vars$series.id)
+# merge unemp for current month into events
+events_sheldus_unemp <- merge(events_sheldus, bls_vars, by.x = c("Year", "Month", "series.id", "fcc.county.FIPS"), 
+                              by.y = c("Year","Month", "series.id", "fcc.county.FIPS"))
+names(events_sheldus_unemp)
+
+events_final <- select(events_sheldus_unemp, Year, Month, EVENTS.begin_date, EVENTS.begin_time_UTC, state, county.x, 
+                       fcc.county.FIPS, EVENTS.begin_lat, EVENTS.begin_lon, EVENTS.wfo, adjusted2009damage_value, 
+                       adj.dmg.tot, unemp, adj.dmg.pcapita)
+
+events_final <- events_final %>% mutate(unemp = as.numeric(unemp), 
+                                        Date = ymd(as.numeric(paste0(Year, sprintf("%02d", Month), "01")))) %>% 
+  group_by(fcc.county.FIPS) %>% arrange(Date, .by_group = TRUE) 
+
+events_sum <- events_final %>% group_by(fcc.county.FIPS, Date) %>% 
+  summarise(mean.adj.dmg.total=mean(adjusted2009damage_value, na.rm = TRUE),
+            unemp = mean(unemp, na.rm = TRUE),
+            mean.sheldus.dmg = mean(adj.dmg.tot, na.rm = TRUE))
+
+ggplot(events_sum, aes(Date, unemp)) +
+  geom_point(aes(colour = factor(fcc.county.FIPS)), size = 4, show.legend = FALSE, na.rm=TRUE) +
+  geom_vline(data = events_sum, aes(xintercept = as.numeric(Date[mean.sheldus.dmg==max(mean.sheldus.dmg, na.rm = TRUE)])
+    )) + geom_vline(data = events_sum, aes(xintercept = as.numeric(Date[mean.adj.dmg.total==max(mean.adj.dmg.total, na.rm = TRUE)])
+    ))
 
 
-bls_test <- bls_vars[sample(1:8448, 1000, replace=F),]
-?sample
 
-blah <- split(bls_test,f = "series.id")
-library(reshape2)
 
-bls_cast <- dcast(bls_test, date ~ series.id, value.var = "unemp", fun.aggregate = mean, na.rm=T)
-bls_cast[1,]
+
+
+
+events_ts <- select(events_sheldus_unemp, Year, Month, unemp, total_adj_2009_dmg)
+events_ts <- arrange(events_ts, as.Date(paste0(events_ts$Year,"-",events_ts$Month,"-01"), format = "%Y-%m-%d"))
+dmg_ts <- ts(events_ts$total_adj_2009_dmg, start = c(2010, 1), end = c(2016,12), frequency = 12)
+unp_ts <- ts(events_ts$unemp, start = c(2010, 1), end = c(2016,12), frequency = 12)
+ts.plot(log(dmg_ts), unp_ts, gpars = list(col=c("blue","red")))
+legend("topleft", legend = c("blue = log(dmg)", "red = unp"))
+
+
+county_events_count <- events %>% group_by(Year, EVENTS.czname, fcc.county.FIPS) %>% summarise(n())
+sussex <- filter(county_events_count, fcc.county.FIPS=="10005")
+plot(sussex$Year, sussex$`n()`, type = "l")
+
+onecounty <- events %>% select("EVENTS.begin_date", "fcc.county.FIPS") %>% 
+  filter(fcc.county.FIPS=="12073")
+

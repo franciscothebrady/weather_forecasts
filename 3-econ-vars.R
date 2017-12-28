@@ -112,7 +112,7 @@
   bls_vars <- select(response_df, "date", "series.id", "unemp")
   bls_vars$fcc.county.FIPS <- substring(bls_vars$series.id, 6, 10)
   
-  county_st_names <- select(events, "fcc.county.FIPS", "series.id", "fcc.county.name", "state.code")
+  county_st_names <- unique(select(events, "fcc.county.FIPS", "series.id", "fcc.county.name", "state.code"))
   # merge in event location info with bls
   bls_vars <- merge(bls_vars, county_st_names, by = c("fcc.county.FIPS", "series.id"))
   
