@@ -11,6 +11,9 @@ library(lubridate)
 library(quantmod)
 library(reshape2)
 
+options(scipen = 999) # Do not print scientific notation
+options(stringsAsFactors = FALSE) # Do not load strings as factors
+
 setwd("~/weather_forecasts/")
 #### load in sheldus data ####
 # all 50 states, [fill this in with the rest of the SHELDUS parameters]
