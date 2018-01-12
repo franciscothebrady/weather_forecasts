@@ -84,19 +84,61 @@ events_final <- select(events_sheldus_unemp, Year, Month, EVENTS.begin_date, EVE
 events_final <- events_final %>% mutate(unemp = as.numeric(unemp), 
                                         Date = ymd(as.numeric(paste0(Year, sprintf("%02d", Month), "01")))) %>% 
   group_by(fcc.county.FIPS) %>% arrange(Date, .by_group = TRUE) 
-
+# summary of damages and unemp
 events_sum <- events_final %>% group_by(fcc.county.FIPS, Date) %>% 
   summarise(mean.adj.dmg.total=mean(adjusted2009damage_value, na.rm = TRUE),
             unemp = mean(unemp, na.rm = TRUE),
             mean.sheldus.dmg = mean(adj.dmg.tot, na.rm = TRUE))
+# event frequencies by county
+events_freq <- events_final %>% group_by(fcc.county.FIPS, county.x) %>% 
+  summarise(freq = n())
 
-ggplot(events_sum, aes(Date, unemp)) +
-  geom_point(aes(colour = factor(fcc.county.FIPS)), size = 4, show.legend = FALSE, na.rm=TRUE) +
-  geom_vline(data = events_sum, aes(xintercept = as.numeric(Date[mean.sheldus.dmg==max(mean.sheldus.dmg, na.rm = TRUE)])
-    )) + geom_vline(data = events_sum, aes(xintercept = as.numeric(Date[mean.adj.dmg.total==max(mean.adj.dmg.total, na.rm = TRUE)])
-    ))
+# reshaping population estimates with tidyr
+library(tidyr)
+library(readr)
+library(stringr)
+# read in population estimates
+county.pop.ests <- read_csv("data/county_pop_ests/PEP_2016_PEPANNRES_with_ann.csv", 
+                            skip = 1)
+names(county.pop.ests) <- c("geo.id","fips","geography","census.2010","base.2010",
+                            "est.2010","est.2011","est.2012","est.2013","est.2014","est.2015","est.2016")
+county.pop.ests <- select(county.pop.ests, -base.2010, -est.2010)
+county.pop.ests <- separate(county.pop.ests, geography, c("county","state"), sep = ",")
+county.pop.ests <- gather(county.pop.ests, year, pop_est, census.2010:est.2016)
+county.pop.ests <- mutate(county.pop.ests, year = as.numeric(str_sub(year, -4)))
+
+# merge with events df
+events_pop <- left_join(events_final, county.pop.ests, by = c("fcc.county.FIPS"="fips", "Year"="year"))
+
+freq <- events_pop %>% group_by(fcc.county.FIPS, EVENTS.begin_date) %>% 
+  summarise(n()) %>% arrange(desc(pop_est)) 
+
+events_final %>% arrange(desc(pop_est, adj.dmg.pcapita)) %>% head(15) -> largest_pop_events
+
+largest_by_date <- largest_pop_events %>%
+  group_by(EVENTS.begin_date, fcc.county.FIPS, pop_est) %>%
+  summarise(mean.adj.dmg.pcapita = mean(adj.dmg.pcapita)) %>% arrange(desc(pop_est, adj.dmg.pcapita))
+
+# find county size 
+# arrange top damages in most populated areas
+# event lines for highest damage events
+# add unemp rates 
 
 
+
+
+
+# next find most populous and order frequencies by population
+# might also want to do this by year
+
+unemplot <- ggplot(events_sum, aes(Date, unemp)) +
+  geom_point(aes(colour = factor(fcc.county.FIPS)), 
+             size = 4, show.legend = TRUE, na.rm=TRUE) +
+  geom_vline(data = events_sum, 
+             aes(xintercept = as.numeric(Date[mean.sheldus.dmg==max(mean.sheldus.dmg, na.rm = TRUE)]))) +
+  geom_vline(data = events_sum, 
+             aes(xintercept = as.numeric(Date[mean.adj.dmg.total==max(mean.adj.dmg.total, na.rm = TRUE)])))
+unemplot
 
 
 
