@@ -116,7 +116,7 @@ names(events_pop)[names(events_pop) == "state.x"] <- "state.abb"
 names(events_pop)[names(events_pop) == "state.y"] <- "state.name"
 events_pop$state.name <- trimws(events_pop$state.name)
 # write to data 
-write.csv(events_pop, "data/4_events.csv", row.names = FALSE)
+write.csv(events_pop, "data/4_sheldus.csv", row.names = FALSE)
 
 
 # move the below to analysis script
