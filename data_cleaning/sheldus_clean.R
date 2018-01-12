@@ -2,14 +2,21 @@
 # downloading sheldus data
 #
 # what this file does:
-# 1. grabs sheldus zip files from gdrive
-# 2. unzips, cleans and combines them
-# 3. gets them ready to be merged with events data
+# 1. reads in sheldus data
+# 2. cleans and combines them into one file
+# 3. merges them with the events data
+# 3a. deflates sheldus data using 2009 CPI
+# 4. reads in population data
+# 5. cleans and merges that with events and sheldus data
+# 6. spits out a csv for further processing 
+
 library(readr)
 library(lubridate)
 #install.packages("quantmod")
 library(quantmod)
 library(reshape2)
+library(tidyr)
+library(stringr)
 
 options(scipen = 999) # Do not print scientific notation
 options(stringsAsFactors = FALSE) # Do not load strings as factors
@@ -48,55 +55,51 @@ avg.cpi <- apply.yearly(CPIAUCSL, mean)
 
 cf <- avg.cpi/as.numeric(avg.cpi['2009'])
 
-# something is going on here 
+# deflate damage values using 2009 CPI
 events$adjusted2009damage_value <- matrix(unlist(lapply(events$Year, function(x){
   as.data.frame(cf$CPIAUCSL[match(x, year(cf[,1]))])[,1]
   })), nrow=8448,byrow=T)[,1] * events$EVENTS.damage_value * 10^events_sheldus$EVENTS.damage_magnitude
 
-
+# join events and sheldus data by Year/Month and Fips/State
 events_sheldus <- inner_join(x = events, y = sheldus, by = c("Year"="year", "Month"="month", "fcc.county.FIPS"="county.FIPS",
                                                                "state.name"="state"))
+# create total dmg per capita variable by adding crop and prop dmg
 events_sheldus$adj.dmg.pcapita <- events_sheldus$crop.09.dmg.pcapita + events_sheldus$prop.09.dmg.pcapita
 
-diff <- as.data.frame(events_sheldus$adj.dmg.tot - 
-                        (events_sheldus$adjusted2009damage_value*10^events_sheldus$EVENTS.damage_magnitude))
-biggest_diff <- events_sheldus[diff == min(diff),]
-summary(diff)
+# sanity tests 
+# diff <- as.data.frame(events_sheldus$adj.dmg.tot - 
+#                         (events_sheldus$adjusted2009damage_value*10^events_sheldus$EVENTS.damage_magnitude))
+# biggest_diff <- events_sheldus[diff == min(diff),]
+# summary(diff)
 
-# # get the bls vars into the right format
-# bls_melt <- melt(bls_vars, id.vars = c("series.id", "date", "fcc.county.FIPS","fcc.county.name"))
-# 
-# bls_cast <- dcast(bls_vars, date ~  series.id, value.var = "unemp")
+# massage unemployment data for merging
 bls_vars$Year <- lubridate::year(bls_vars$date)
 bls_vars$Month <- lubridate::month(bls_vars$date)
-names(bls_vars)
-str(events_sheldus$series.id)
-str(bls_vars$series.id)
+# names(bls_vars)
+# str(events_sheldus$series.id)
+# str(bls_vars$series.id)
 # merge unemp for current month into events
-events_sheldus_unemp <- merge(events_sheldus, bls_vars, by.x = c("Year", "Month", "series.id", "fcc.county.FIPS"), 
-                              by.y = c("Year","Month", "series.id", "fcc.county.FIPS"))
-names(events_sheldus_unemp)
+events_sheldus_unemp <- merge(events_sheldus, bls_vars, by.x = c("Year", "Month", "series.id", "fcc.county.FIPS", "fcc.county.name"), 
+                              by.y = c("Year","Month", "series.id", "fcc.county.FIPS", "fcc.county.name"))
 
-events_final <- select(events_sheldus_unemp, Year, Month, EVENTS.begin_date, EVENTS.begin_time_UTC, state, county.x, 
-                       fcc.county.FIPS, EVENTS.begin_lat, EVENTS.begin_lon, EVENTS.wfo, adjusted2009damage_value, 
+events_final <- select(events_sheldus_unemp, Year, Month, EVENTS.begin_date, EVENTS.begin_time_UTC, state, 
+                       series.id, fcc.county.FIPS, fcc.county.name, EVENTS.begin_lat, EVENTS.begin_lon, EVENTS.wfo, adjusted2009damage_value, 
                        adj.dmg.tot, unemp, adj.dmg.pcapita)
 
-events_final <- events_final %>% mutate(unemp = as.numeric(unemp), 
-                                        Date = ymd(as.numeric(paste0(Year, sprintf("%02d", Month), "01")))) %>% 
-  group_by(fcc.county.FIPS) %>% arrange(Date, .by_group = TRUE) 
-# summary of damages and unemp
-events_sum <- events_final %>% group_by(fcc.county.FIPS, Date) %>% 
-  summarise(mean.adj.dmg.total=mean(adjusted2009damage_value, na.rm = TRUE),
-            unemp = mean(unemp, na.rm = TRUE),
-            mean.sheldus.dmg = mean(adj.dmg.tot, na.rm = TRUE))
-# event frequencies by county
-events_freq <- events_final %>% group_by(fcc.county.FIPS, county.x) %>% 
-  summarise(freq = n())
+# move to analysis script
+# events_final <- events_final %>% mutate(unemp = as.numeric(unemp), 
+#                                         Date = ymd(as.numeric(paste0(Year, sprintf("%02d", Month), "01")))) %>% 
+#   group_by(fcc.county.FIPS) %>% arrange(Date, .by_group = TRUE) 
+# # summary of damages and unemp
+# events_sum <- events_final %>% group_by(fcc.county.FIPS, Date) %>% 
+#   summarise(mean.adj.dmg.total=mean(adjusted2009damage_value, na.rm = TRUE),
+#             unemp = mean(unemp, na.rm = TRUE),
+#             mean.sheldus.dmg = mean(adj.dmg.tot, na.rm = TRUE))
+# # event frequencies by county
+# events_freq <- events_final %>% group_by(fcc.county.FIPS, county.x) %>% 
+#   summarise(freq = n())
 
 # reshaping population estimates with tidyr
-library(tidyr)
-library(readr)
-library(stringr)
 # read in population estimates
 county.pop.ests <- read_csv("data/county_pop_ests/PEP_2016_PEPANNRES_with_ann.csv", 
                             skip = 1)
@@ -109,53 +112,31 @@ county.pop.ests <- mutate(county.pop.ests, year = as.numeric(str_sub(year, -4)))
 
 # merge with events df
 events_pop <- left_join(events_final, county.pop.ests, by = c("fcc.county.FIPS"="fips", "Year"="year"))
-
-freq <- events_pop %>% group_by(fcc.county.FIPS, EVENTS.begin_date) %>% 
-  summarise(n()) %>% arrange(desc(pop_est)) 
-
-events_final %>% arrange(desc(pop_est, adj.dmg.pcapita)) %>% head(15) -> largest_pop_events
-
-largest_by_date <- largest_pop_events %>%
-  group_by(EVENTS.begin_date, fcc.county.FIPS, pop_est) %>%
-  summarise(mean.adj.dmg.pcapita = mean(adj.dmg.pcapita)) %>% arrange(desc(pop_est, adj.dmg.pcapita))
-
-# find county size 
-# arrange top damages in most populated areas
-# event lines for highest damage events
-# add unemp rates 
+names(events_pop)[names(events_pop) == "state.x"] <- "state.abb"
+names(events_pop)[names(events_pop) == "state.y"] <- "state.name"
+events_pop$state.name <- trimws(events_pop$state.name)
+# write to data 
+write.csv(events_pop, "data/4_events.csv", row.names = FALSE)
 
 
+# move the below to analysis script
+# freq <- events_pop %>% group_by(fcc.county.FIPS, EVENTS.begin_date) %>% 
+#   summarise(n()) %>% arrange(desc(pop_est)) 
+# 
+# events_final %>% arrange(desc(pop_est, adj.dmg.pcapita)) %>% head(15) -> largest_pop_events
+# 
+# largest_by_date <- largest_pop_events %>%
+#   group_by(EVENTS.begin_date, fcc.county.FIPS) %>%
+#   summarise(mean.adj.dmg.pcapita = mean(adj.dmg.pcapita)) %>% arrange(desc(pop_est, adj.dmg.pcapita))
 
-
-
-# next find most populous and order frequencies by population
-# might also want to do this by year
-
-unemplot <- ggplot(events_sum, aes(Date, unemp)) +
-  geom_point(aes(colour = factor(fcc.county.FIPS)), 
-             size = 4, show.legend = TRUE, na.rm=TRUE) +
-  geom_vline(data = events_sum, 
-             aes(xintercept = as.numeric(Date[mean.sheldus.dmg==max(mean.sheldus.dmg, na.rm = TRUE)]))) +
-  geom_vline(data = events_sum, 
-             aes(xintercept = as.numeric(Date[mean.adj.dmg.total==max(mean.adj.dmg.total, na.rm = TRUE)])))
-unemplot
-
-
-
-
-
-events_ts <- select(events_sheldus_unemp, Year, Month, unemp, total_adj_2009_dmg)
-events_ts <- arrange(events_ts, as.Date(paste0(events_ts$Year,"-",events_ts$Month,"-01"), format = "%Y-%m-%d"))
-dmg_ts <- ts(events_ts$total_adj_2009_dmg, start = c(2010, 1), end = c(2016,12), frequency = 12)
-unp_ts <- ts(events_ts$unemp, start = c(2010, 1), end = c(2016,12), frequency = 12)
-ts.plot(log(dmg_ts), unp_ts, gpars = list(col=c("blue","red")))
-legend("topleft", legend = c("blue = log(dmg)", "red = unp"))
-
-
-county_events_count <- events %>% group_by(Year, EVENTS.czname, fcc.county.FIPS) %>% summarise(n())
-sussex <- filter(county_events_count, fcc.county.FIPS=="10005")
-plot(sussex$Year, sussex$`n()`, type = "l")
-
-onecounty <- events %>% select("EVENTS.begin_date", "fcc.county.FIPS") %>% 
-  filter(fcc.county.FIPS=="12073")
-
+# 
+##### move to visualization script ####
+# unemplot <- ggplot(events_sum, aes(Date, unemp)) +
+#   geom_point(aes(colour = factor(fcc.county.FIPS)), 
+#              size = 4, show.legend = TRUE, na.rm=TRUE) +
+#   geom_vline(data = events_sum, 
+#              aes(xintercept = as.numeric(Date[mean.sheldus.dmg==max(mean.sheldus.dmg, na.rm = TRUE)]))) +
+#   geom_vline(data = events_sum, 
+#              aes(xintercept = as.numeric(Date[mean.adj.dmg.total==max(mean.adj.dmg.total, na.rm = TRUE)])))
+# unemplot
+# 
