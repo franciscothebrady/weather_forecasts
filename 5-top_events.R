@@ -26,6 +26,6 @@ top_dates <- top_events %>% select(series.id, EVENTS.begin_date) %>%
 ##
 # not sure why the event lines are not showing up.
 ggplot(data = top_unemp, aes(x =  date, y = unemp, group = series.id, color = series.id)) + geom_line() + 
-  geom_vline(xintercept = c(as.numeric(floor_date(ymd(EVENTS.begin_date), unit = "month")))), data = top_dates)
+  geom_vline(data = top_dates, aes(xintercept = c(as.numeric(floor_date(ymd(EVENTS.begin_date), unit = "month")))))
              
              
