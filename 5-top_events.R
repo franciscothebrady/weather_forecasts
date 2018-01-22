@@ -25,7 +25,12 @@ top_dates <- top_events %>% select(series.id, EVENTS.begin_date) %>%
 # plot unemployment
 ##
 # not sure why the event lines are not showing up.
-ggplot(data = top_unemp, aes(x =  date, y = unemp, group = series.id, color = series.id)) + geom_line() + 
+ggplot(data = top_unemp, aes(x =  date, y = unemp, group = fcc.county.name))  + geom_line(aes(color = fcc.county.name)) + 
   geom_vline(data = top_dates, aes(xintercept = c(as.numeric(floor_date(ymd(EVENTS.begin_date), unit = "month")))))
-             
-             
+       
+# doesn't work
+cook.events <- top_unemp %>% filter(fcc.county.name=="cook") %>% 
+    left_join(filter(top_dates, series.id=="LAUCN170310000000003"), by = c("series.id","EVENTS.begin_date"))
+str(top_unemp$date)
+top_dates$series.id
+str(head(top_dates$EVENTS.begin_date))
