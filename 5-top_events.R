@@ -8,11 +8,15 @@ library(scales)
 
 # read in  the events data.
 events <- read.csv("data/4_sheldus.csv", stringsAsFactors = FALSE)
+# change begin_date to date class
+events$EVENTS.begin_date <- as.Date(events$EVENTS.begin_date)
 # read in unemp separately 
 unemp <- read.csv("data/bls_vars.csv", stringsAsFactors = FALSE)
+# change dates to date class
+unemp$date <- as.Date(unemp$date)
 # arrange by most populous and biggest damage impact
 top_events <- events %>% arrange(-pop_est, -adj.dmg.pcapita) %>%
-  head(2)
+  head(75)
 
 # find unique counties in top events
 top_series <- unique(top_events$series.id)
@@ -28,10 +32,16 @@ top_dates <- top_events %>% select(series.id, fcc.county.name, EVENTS.begin_date
   arrange(EVENTS.begin_date) %>% distinct() %>% mutate(date = floor_date(ymd(EVENTS.begin_date), unit = "month"))
 
 # plot unemployment and damage per capita 
-ggplot(data = allthestuff, aes(x =  date, y = unemp, group = fcc.county.name)) + geom_line(aes(color = fcc.county.name)) +
-  geom_point(data = allthestuff, aes(x = EVENTS.begin_date, y = adj.dmg.pcapita, 
-                                 group = fcc.county.name, color = fcc.county.name, size = adj.dmg.pcapita)) #+ 
-  # facet_grid(type ~., scales = "free") #sec.axis = sec_axis(~.*0.001+0.005, name = "damage per capita")) 
+# employment
+unemplot <- ggplot(data = allthestuff, aes(x =  date, y = unemp, group = fcc.county.name)) + 
+  geom_line(aes(color = fcc.county.name)) + guides("FALSE") +
+  geom_point(data = allthestuff, aes(x = EVENTS.begin_date, y = adj.dmg.pcapita,
+                                 group = fcc.county.name, color = fcc.county.name, size = adj.dmg.pcapita)) +
+  geom_vline(data = allthestuff, aes(xintercept = as.numeric(EVENTS.begin_date),
+                                     color = factor(fcc.county.name)), show.legend = FALSE) +
+  scale_x_date(date_breaks = waiver(), date_labels = "%Y-%b")
+
+unemplot
   
 # plot for event lines 
 # not sure why the event lines are not showing up.
