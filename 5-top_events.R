@@ -16,7 +16,7 @@ unemp <- read.csv("data/bls_vars.csv", stringsAsFactors = FALSE)
 unemp$date <- as.Date(unemp$date)
 # arrange by most populous and biggest damage impact
 top_events <- events %>% arrange(-pop_est, -adj.dmg.pcapita) %>%
-  head(75)
+  head(15)
 
 # find unique counties in top events
 top_series <- unique(top_events$series.id)
@@ -34,13 +34,13 @@ top_dates <- top_events %>% select(series.id, fcc.county.name, EVENTS.begin_date
 # plot unemployment and damage per capita 
 # employment
 unemplot <- ggplot(data = allthestuff, aes(x =  date, y = unemp, group = fcc.county.name)) + 
-  geom_line(aes(color = fcc.county.name)) + guides("FALSE") +
+  geom_line(aes(color = fcc.county.name), show.legend = FALSE) +
   geom_point(data = allthestuff, aes(x = EVENTS.begin_date, y = adj.dmg.pcapita,
                                  group = fcc.county.name, color = fcc.county.name, size = adj.dmg.pcapita)) +
   geom_vline(data = allthestuff, aes(xintercept = as.numeric(EVENTS.begin_date),
                                      color = factor(fcc.county.name)), show.legend = FALSE) +
   scale_x_date(date_breaks = waiver(), date_labels = "%Y-%b")
-
+# show plot
 unemplot
 
 smaller_sample <- filter(allthestuff, fcc.county.name==c("clark","maricopa","riverside"))
