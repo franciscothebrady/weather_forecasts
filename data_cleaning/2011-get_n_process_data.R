@@ -21,7 +21,7 @@ setwd("~/weather_forecasts")
 
 #-- load required packages
 library(checkpoint)
-checkpoint("2017-07-04")
+#checkpoint("2017-07-04")
 library(plyr)
 library(dtplyr)
 library(stringr)
@@ -31,7 +31,7 @@ library(bea.R)
 
 library(geosphere)
 library(weathermetrics)
-
+library(lubridate)
 
 #-- API keys (fb's API keys)
 # Putting this here is very bad practice!
@@ -286,8 +286,8 @@ rm(result)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-#save.image("data/snapshot_2017-07-06_2330.RData")
-#load("data/snapshot_2017-07-06_2330.RData")
+save.image(paste0("data/",lubridate::today(),"snapshot.RData"))
+#load("data/-07-06_2330.RData")
 
 
 # Hack job. Not sure why I can't just use dplyr::bind_rows()
@@ -513,7 +513,7 @@ rm(j, eid)
 
 #-- merge forecast data to storm_events_precip ID and date
 # save.image("data/snapshot_2017-07-26-0023.Rdata")
-save.image("data/2011_snapshot_2017-8-1-2315.RData")
+
 rm(ghcnd_station_list, storm_events)
 ###
 mos_q24 <- merge(mos2day24, mos6day24, by.x="index", by.y="index")
@@ -525,7 +525,7 @@ rm(mos_q24)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-#save.image("data/snapshot_2017-07-11_0456.RData")
+save.image(paste0("data/2011_",lubridate::today(),"snapshot.RData"))
 #load("data/snapshot_2017-07-11_0456.RData")
 
 storm_events_precip <- dplyr::mutate(storm_events_precip, 

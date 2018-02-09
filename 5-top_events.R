@@ -1,6 +1,6 @@
 # francisco
-# 5. isolating some relationships
-# in this script i try to isolate some big effects so we can see if a relationship is present 
+# 5. top events
+# in this script we try to arrange by top events and plot some nice plots.
 library(dplyr)
 library(ggplot2)
 library(lubridate)
@@ -16,7 +16,7 @@ unemp <- read.csv("data/bls_vars.csv", stringsAsFactors = FALSE)
 unemp$date <- as.Date(unemp$date)
 # arrange by most populous and biggest damage impact
 top_events <- events %>% arrange(-pop_est, -adj.dmg.pcapita) %>%
-  head(15)
+  head(100)
 
 # find unique counties in top events
 top_series <- unique(top_events$series.id)

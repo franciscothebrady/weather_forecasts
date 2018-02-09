@@ -29,8 +29,3 @@ plot(as.Date(bls_test$date), bls_test$unemp, type = "l")
 # find unique locations and dates for events
 locations <- unique(select(events, "fcc.county.FIPS", "fcc.county.name", "state"))
 
-# figure out what to do next
-# options
-# 1. read in sheldus data
-# 2. figure out lags? 
-# 3. ?????

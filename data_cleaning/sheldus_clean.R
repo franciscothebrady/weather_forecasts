@@ -44,6 +44,8 @@ sheldus$adj.dmg.tot <- sheldus$adj.09.crop.dmg + sheldus$adj.09.prop.dmg
 events <- read_csv("data/3_econ-vars.csv")
 names(sheldus)
 names(events)
+# we should keep the EVENTS.ID, to merge on later.
+anyDuplicated(events$EVENTS.ID)
 
 
 events$Year <- as.integer(year(events$EVENTS.begin_date))
@@ -56,9 +58,9 @@ avg.cpi <- apply.yearly(CPIAUCSL, mean)
 cf <- avg.cpi/as.numeric(avg.cpi['2009'])
 
 # deflate damage values using 2009 CPI
-events$adjusted2009damage_value <- matrix(unlist(lapply(events$Year, function(x){
-  as.data.frame(cf$CPIAUCSL[match(x, year(cf[,1]))])[,1]
-  })), nrow=8448,byrow=T)[,1] * events$EVENTS.damage_value * 10^events_sheldus$EVENTS.damage_magnitude
+events$adjusted2009damage_value <- matrix(unlist(lapply(events$Year, function(x) {
+  as.data.frame(cf$CPIAUCSL[match(x, year(cf[,1]))])[,1]})), 
+  byrow=T)[,1] * events$EVENTS.damage_value * 10^events_sheldus$EVENTS.damage_magnitude
 
 # join events and sheldus data by Year/Month and Fips/State
 events_sheldus <- inner_join(x = events, y = sheldus, by = c("Year"="year", "Month"="month", "fcc.county.FIPS"="county.FIPS",
@@ -82,8 +84,9 @@ bls_vars$Month <- lubridate::month(bls_vars$date)
 events_sheldus_unemp <- merge(events_sheldus, bls_vars, by.x = c("Year", "Month", "series.id", "fcc.county.FIPS", "fcc.county.name"), 
                               by.y = c("Year","Month", "series.id", "fcc.county.FIPS", "fcc.county.name"))
 
-events_final <- select(events_sheldus_unemp, Year, Month, EVENTS.begin_date, EVENTS.begin_time_UTC, state, 
-                       series.id, fcc.county.FIPS, fcc.county.name, EVENTS.begin_lat, EVENTS.begin_lon, EVENTS.wfo, adjusted2009damage_value, 
+names(events_sheldus_unemp)
+events_final <- select(events_sheldus_unemp, Year, Month, EVENTS.ID, EVENTS.begin_date, EVENTS.begin_time_UTC, state, 
+                       series.id, fcc.county.FIPS, fcc.county.name, EVENTS.begin_lat, EVENTS.begin_lon, EVENTS.wfo, 
                        adj.dmg.tot, unemp, adj.dmg.pcapita)
 
 # move to analysis script
