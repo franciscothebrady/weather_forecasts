@@ -309,6 +309,7 @@ save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),".RData"))
 #load("data/snapshot_2017-07-09_1939.RData")
 rm(j, eid)
 
+
 rm(ghcnd_station_list, storm_events)
 
 ##### merge in forecasts with sheldus events ####
