@@ -9,7 +9,8 @@ library(stringr)
 library(purrr)
 library(rnoaa)
 library(bea.R)
-
+library(purrr)
+library(lubridate)
 library(geosphere)
 library(weathermetrics)
 
@@ -29,8 +30,7 @@ ghcnd_station_list <- ghcnd_stations()
 # filtering out events without geo location
 temp_df <- data.frame(id =  events$EVENTS.ID[!is.na(events$EVENTS.begin_lat)], 
                       latitude = events$EVENTS.begin_lat[!is.na(events$EVENTS.begin_lat)], 
-                      longitude = 
-                        events$EVENTS.begin_lon[!is.na(events$EVENTS.begin_lon)])
+                      longitude = events$EVENTS.begin_lon[!is.na(events$EVENTS.begin_lon)])
 
 #### Find closest MET station near precip event ####
 # this is gonna take a while since its pulling from 2010-2016
@@ -38,11 +38,13 @@ met_stations <- meteo_nearby_stations(lat_lon_df = temp_df,
                                       station_data = ghcnd_station_list, limit = 1, var = "PRCP",
                                       year_min = 2010, year_max = 2016)
 
-met_stations <- plyr::rbind.fill(met_stations)  # convert list of data frames into data frame
-met_stations$EVENTS.ID <- temp_df$id  # add EVENTS.ID for merging with sheldus events
+# met_stations <- plyr::rbind.fill(met_stations)  # convert list of data frames into data frame # no longer works
+# met_stations$EVENTS.ID <- temp_df$id  # add EVENTS.ID for merging with sheldus events
 
-colnames(met_stations) <- c("GHCND.ID","GHCND.name","GHCND.lat","GHCND.lon",
-                            "GHCND.dist_from_event.km","EVENTS.ID")
+met_stations <- map_df(met_stations, ~as.data.frame(.x), .id="id")
+
+colnames(met_stations) <- c("EVENTS.ID","GHCND.ID","GHCND.name","GHCND.lat","GHCND.lon",
+                            "GHCND.dist_from_event.km")
 rm(temp_df)
 
 #### Merge MET stations into sheldus events ####
@@ -82,6 +84,8 @@ for (j in 1:length(events$EVENTS.ID)) {
   events$MOS.dist_from_event.km[j] <- dd[nearest_station_index]/1e3  # convert to km
 }
 
+save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),".RData"))
+
 rm(j, dd, nearest_station_index)
 
 #####-- get observation data from ghcnd stations ####
@@ -116,13 +120,12 @@ for (j in 1:length(events$EVENTS.ID)) {
   })
   temp_ls[[j]] <- result
 }
-rm(result)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
 save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),".RData"))
-#load("data/snapshot_2017-07-06_2330.RData")
 
+rm(result)
 
 # Hack job. Not sure why I can't just use dplyr::bind_rows()
 #station_obs <- dplyr::bind_rows(temp_ls)
@@ -169,9 +172,8 @@ events <- merge(events, station_obs,
                              by.x = c("GHCND.ID", "EVENTS.begin_date"),
                              by.y = c("prcp.id", "prcp.date"))
 
-#### STOP HERE #### double check on dplyr syntax for rename. 
 # names(storm_events_precip)[33] <- "GHCND.prcp_cat"
-dplyr::rename(events$prcp.prcp, GHCND.prcp_cat) # not sure if this is the right syntax. but p sure.
+events <- events %>% rename(GHCND.prcp_cat = prcp.prcp)
 
 
 #-- save workspace to not have to re-create dataset when something goes wrong
@@ -317,7 +319,7 @@ mos_q24 <- merge(mos2day24, mos6day24, by.x="index", by.y="index")
 mos_q24 <- data.frame(Q24.f2=mos_q24$Q24.x, Q24.f6=mos_q24$Q24.y)
 events <- cbind.data.frame(events, mos_q24)
 
-#### STOP HERE: figure out if dplyr naming convetions ####
+#### STOP HERE: figure out if dplyr naming conventions ####
 #### are still ok ####
 # names(storm_events_precip)[34] <- "Q12.f1"
 dplyr::rename(events, Q12.f1=mos_q24) # rename by name
