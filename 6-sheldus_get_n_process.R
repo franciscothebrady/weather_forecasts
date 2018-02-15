@@ -187,7 +187,7 @@ source("data_cleaning/get_archived_GFSX_MOS.R")
 
 #-- beware! nasty hack job below
 
-# collect 5 day ahead forecast on Q12
+#### collect 5 day ahead forecast on Q12 ####
 mos5day12 <- NULL
 for (eid in 1:length(events$EVENTS.ID)) {
   print(eid)
@@ -216,8 +216,8 @@ for (eid in 1:length(events$EVENTS.ID)) {
     )
   }
 }
-
-# collect 1 day ahead forecast on Q12
+save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),".RData"))
+#### collect 1 day ahead forecast on Q12 ####
 mos1day12 <- NULL
 for (eid in 1:length(events$EVENTS.ID)) {
   print(eid)
