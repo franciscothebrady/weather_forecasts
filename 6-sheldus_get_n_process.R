@@ -217,6 +217,10 @@ for (eid in 1:length(events$EVENTS.ID)) {
   }
 }
 save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),".RData"))
+cmd <- '"C:/Program Files/Git/cmd/git.exe" commit -m "uploading 5 day fcst"'
+cmd1 <- '"C:/Program Files/Git/cmd/git.exe" push'
+system(cmd, intern = T)
+system(cmd1, intern = T)
 #### collect 1 day ahead forecast on Q12 ####
 mos1day12 <- NULL
 for (eid in 1:length(events$EVENTS.ID)) {
