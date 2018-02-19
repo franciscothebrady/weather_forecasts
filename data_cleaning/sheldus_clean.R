@@ -75,11 +75,10 @@ events_sheldus$adj.dmg.pcapita <- events_sheldus$crop.09.dmg.pcapita + events_sh
 # summary(diff)
 
 # massage unemployment data for merging
+bls_vars <- read_csv("data/bls_vars.csv")
+
 bls_vars$Year <- lubridate::year(bls_vars$date)
 bls_vars$Month <- lubridate::month(bls_vars$date)
-# names(bls_vars)
-# str(events_sheldus$series.id)
-# str(bls_vars$series.id)
 # merge unemp for current month into events
 events_sheldus_unemp <- merge(events_sheldus, bls_vars, by.x = c("Year", "Month", "series.id", "fcc.county.FIPS", "fcc.county.name"), 
                               by.y = c("Year","Month", "series.id", "fcc.county.FIPS", "fcc.county.name"))
