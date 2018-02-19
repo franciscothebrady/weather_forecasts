@@ -14,6 +14,10 @@ library(lubridate)
 library(geosphere)
 library(weathermetrics)
 
+# set up git user/email
+user <-  'git config --global user.name "franciscothebrady"'
+email <- 'git config --global user.email "franciscothebrady@gmail.com"'
+
 #### read in  the events data ####
 events <- read.csv("data/4_sheldus.csv", stringsAsFactors = FALSE)
 # change begin_date to date class
@@ -175,7 +179,6 @@ events <- merge(events, station_obs,
 # names(storm_events_precip)[33] <- "GHCND.prcp_cat"
 events <- events %>% rename(GHCND.prcp_cat = prcp.prcp)
 
-
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
 save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),".RData"))
@@ -216,11 +219,9 @@ for (eid in 1:length(events$EVENTS.ID)) {
     )
   }
 }
+# save progress 
 save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),".RData"))
-cmd <- '"C:/Program Files/Git/cmd/git.exe" commit -m "uploading 5 day fcst"'
-cmd1 <- '"C:/Program Files/Git/cmd/git.exe" push'
-system(cmd, intern = T)
-system(cmd1, intern = T)
+
 #### collect 1 day ahead forecast on Q12 ####
 mos1day12 <- NULL
 for (eid in 1:length(events$EVENTS.ID)) {
@@ -250,6 +251,17 @@ for (eid in 1:length(events$EVENTS.ID)) {
     )
   }
 }
+
+# save progress 
+save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),".RData"))
+# # then push to github
+# cmd <- '"C:/Program Files/Git/cmd/git.exe" commit -m "uploading 1 day fcst"'
+# cmd1 <- '"C:/Program Files/Git/cmd/git.exe" push'
+# 
+# system(user, intern = T, show.output.on.console = T)
+# system(email, intern = T)
+# system(cmd, intern = T)
+# system(cmd1, intern = T)
 
 # collect 6 day ahead forecast on Q24
 mos6day24 <- NULL
@@ -326,8 +338,14 @@ events <- cbind.data.frame(events, mos_q24)
 #### STOP HERE: figure out if dplyr naming conventions ####
 #### are still ok ####
 # names(storm_events_precip)[34] <- "Q12.f1"
+events %>% rename(GHCND.prcp_cat = prcp.prcp)
 dplyr::rename(events, Q12.f1=mos_q24) # rename by name
 
 # dplyr::rename(events, Q
 # names(storm_events_precip)[35] <- "Q12.f5"
 rm(mos_q24)
+# then push to github
+cmd <- '"C:/Program Files/Git/cmd/git.exe" commit -am "uploading sheldus events with forecasts"'
+cmd1 <- '"C:/Program Files/Git/cmd/git.exe" push'
+system(cmd, intern = T)
+system(cmd1, intern = T)
