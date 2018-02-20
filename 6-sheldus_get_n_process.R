@@ -53,7 +53,7 @@ rm(temp_df)
 
 #### Merge MET stations into sheldus events ####
 events <- merge(events, met_stations, by = "EVENTS.ID")
-
+rm(met_stations)
 ####-- get weather stations with MOS runs ####
 #-- (http://www.nws.noaa.gov/mdl/synop/stadrg.php)
 # Modified and saved to csv as mos_stations.csv
@@ -144,6 +144,7 @@ station_obs$prcp.id <- as.character(station_obs$prcp.id)
 station_obs$prcp.prcp <- as.numeric(station_obs$prcp.prcp)
 station_obs$prcp.date <- as.Date(station_obs$prcp.date)
 rm(i)
+rm(temp_ls)
 
 # Remove rows with prcp.prcp as NA
 station_obs <- station_obs[!is.na(station_obs$prcp.prcp),]
@@ -181,7 +182,7 @@ events <- events %>% rename(GHCND.prcp_cat = prcp.prcp)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),".RData"))
+save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),"_before_fcsts.RData"))
 #load("data/snapshot_2017-07-09_1830.RData")
 
 #### USE get_archived_GFSX_MOS.R to get archived MOS forecasts ####
@@ -220,7 +221,7 @@ for (eid in 1:length(events$EVENTS.ID)) {
   }
 }
 # save progress 
-save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),".RData"))
+save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),"_mos5dayq12.RData"))
 
 #### collect 1 day ahead forecast on Q12 ####
 mos1day12 <- NULL
@@ -253,17 +254,9 @@ for (eid in 1:length(events$EVENTS.ID)) {
 }
 
 # save progress 
-save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),".RData"))
-# # then push to github
-# cmd <- '"C:/Program Files/Git/cmd/git.exe" commit -m "uploading 1 day fcst"'
-# cmd1 <- '"C:/Program Files/Git/cmd/git.exe" push'
-# 
-# system(user, intern = T, show.output.on.console = T)
-# system(email, intern = T)
-# system(cmd, intern = T)
-# system(cmd1, intern = T)
+save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),"_mos1dayq12.RData"))
 
-# collect 6 day ahead forecast on Q24
+#### collect 6 day ahead forecast on Q24 ####
 mos6day24 <- NULL
 for (eid in 1:length(events$EVENTS.ID)) {
   print(eid)
@@ -291,6 +284,8 @@ for (eid in 1:length(events$EVENTS.ID)) {
     )
   }
 }
+# save progress 
+save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),"_mos6dayq24.RData"))
 
 # collect 2 day ahead forecast on Q24
 mos2day24 <- NULL
@@ -323,7 +318,7 @@ for (eid in 1:length(events$EVENTS.ID)) {
 
 ####-- save workspace to not have to re-create dataset when something goes wrong ####
 #-- for time consuming processes
-save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),".RData"))
+save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),"_after_fcsts.RData"))
 #load("data/snapshot_2017-07-09_1939.RData")
 rm(j, eid)
 
@@ -335,8 +330,6 @@ mos_q24 <- merge(mos2day24, mos6day24, by.x="index", by.y="index")
 mos_q24 <- data.frame(Q24.f2=mos_q24$Q24.x, Q24.f6=mos_q24$Q24.y)
 events <- cbind.data.frame(events, mos_q24)
 
-#### STOP HERE: figure out if dplyr naming conventions ####
-#### are still ok ####
 # names(storm_events_precip)[34] <- "Q12.f1"
 events %>% rename(GHCND.prcp_cat = prcp.prcp)
 dplyr::rename(events, Q12.f1=mos_q24) # rename by name
