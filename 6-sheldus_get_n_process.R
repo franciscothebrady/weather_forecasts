@@ -322,6 +322,7 @@ save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),"_after_fcsts.RDat
 #load("data/snapshot_2017-07-09_1939.RData")
 rm(j, eid)
 
+#### STOP HERE: look at output, rename by name instead of index once you know whats what.
 
 rm(ghcnd_station_list, storm_events)
 
@@ -331,13 +332,13 @@ mos_q24 <- data.frame(Q24.f2=mos_q24$Q24.x, Q24.f6=mos_q24$Q24.y)
 events <- cbind.data.frame(events, mos_q24)
 
 # names(storm_events_precip)[34] <- "Q12.f1"
-events %>% rename(GHCND.prcp_cat = prcp.prcp)
 dplyr::rename(events, Q12.f1=mos_q24) # rename by name
 
 # dplyr::rename(events, Q
 # names(storm_events_precip)[35] <- "Q12.f5"
 rm(mos_q24)
-# then push to github
+# push to github
+#### need to first set user/email and then stage.
 cmd <- '"C:/Program Files/Git/cmd/git.exe" commit -am "uploading sheldus events with forecasts"'
 cmd1 <- '"C:/Program Files/Git/cmd/git.exe" push'
 system(cmd, intern = T)
