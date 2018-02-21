@@ -20,10 +20,10 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   
   source("data_cleaning/uncompress.R")
   
-  #ui_station_id <- "KDEN"
-  #ui_runtime_date <- "20110523"
-  #ui_runtime_hour <- "12Z"
-  
+  # ui_station_id <- "KDEN" # for testing!
+  # ui_runtime_date <- "20110523"
+  # ui_runtime_hour <- "12Z"
+
   # parse input parameters
   station_id    <- str_to_upper(ui_station_id)
   runtime_year  <- str_sub(ui_runtime_date, 1, 4)
@@ -54,12 +54,12 @@ get_archived_GFSX_MOS <- function(ui_station_id, ui_runtime_date, ui_runtime_hou
   # read mos file into memory
   if (status == 0) {
     mos_outputs <- read_lines(gzfile(local_mos_file_gz), skip = 2)
-    unlink(local_mos_file_gz)
+    #unlink(local_mos_file_gz)
   } else {
     Decompress7Zip(local_mos_file_Z, "data", TRUE)
     uncompressed_file <- str_sub(local_mos_file_Z, 1, nchar(local_mos_file_Z) - 2)
     mos_outputs <- read_lines(uncompressed_file, skip = 2)
-    unlink(uncompressed_file)
+    #unlink(uncompressed_file)
   }
   
   # reformat user input of runtime date
