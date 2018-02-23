@@ -6,6 +6,7 @@
 # 3. downloads them all into a folder
 library(tidyverse)
 library(rvest)
+library(stringr)
 
 # set url
 mos_url <- "https://sats.nws.noaa.gov/~mos/archives/mrfmex/"
@@ -19,6 +20,8 @@ urls <- page %>% html_nodes("td > a") %>%
 
 # first element is garbage
 urls <- urls[2:365]
+# remove everything earlier than 201001
+urls <- urls[str_sub(urls, 4, 9) > 201000]
 
 # paste url onto each element to set up download file function
 prefix <- "https://sats.nws.noaa.gov/~mos/archives/mrfmex/"
@@ -30,7 +33,7 @@ urls <- paste0(prefix, urls)
 for( i in 1:length(urls)){
   print(i)
   # add check for if(!file.exists)
-  download.file(urls[i], paste0("data/", basename(urls)[i]))
+  download.file(urls[i], paste0("data/mos_files/", basename(urls)[i]))
   # also add filter to only download for the dates we need. 
   }
 
