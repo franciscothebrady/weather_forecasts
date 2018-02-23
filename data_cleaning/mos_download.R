@@ -25,8 +25,6 @@ prefix <- "https://sats.nws.noaa.gov/~mos/archives/mrfmex/"
 
 urls <- paste0(prefix, urls)
 
-# set download location
-dl_loc <- "data_cleaning/"
 
 # download files into data folder
 for( i in 1:length(urls)){

@@ -1,6 +1,6 @@
 RunProcess = function(executable, arguments)
 {
-  command = paste0("\"", executable,  "\" ", arguments)
+  command = paste0("\"", executable,  "\"", arguments)
   
   print (command)
   
@@ -25,8 +25,12 @@ RunProcess = function(executable, arguments)
 
 ExecutableFileName7Zip <- function()
 {
-  executableName <- "C:\\Program Files\\7-Zip\\7z.exe"
-  
+  executableName <- "C:\\Program Files (x86)\\7-Zip\\7z.exe"
+
+  # "C:\\PROGRA~2\\7-Zip\\7z.exe"
+  # "C:\\Program Files (x86)\\7-Zip\\7z.exe"
+  # "C:\\Users\\Franc\\7-Zip\\7z.exe"
+  # "C:\Program Files\7-Zip\7z.exe"
   if (file.exists(executableName))
   {
     return (executableName)
@@ -40,7 +44,7 @@ Decompress7Zip <- function(zipFileName, outputDirectory, delete)
   executableName <- ExecutableFileName7Zip()
   
   arguments <- paste(sep = "",
-                     "e ",
+                     " e ",
                      "\"",
                      zipFileName,
                      "\" ",

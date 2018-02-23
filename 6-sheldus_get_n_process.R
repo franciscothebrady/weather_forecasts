@@ -28,8 +28,10 @@ events$EVENTS.begin_date <- as.Date(events$EVENTS.begin_date)
 
 ####-- find closest GHCND station of event and merge it in storm_events_precip ####
 # Get list of GHCND stations
-ghcnd_station_list <- ghcnd_stations()
-
+#ghcnd_station_list <- ghcnd_stations()
+#write.csv(ghcnd_station_list, "data/ghcnd_station_list.csv", row.names = FALSE)
+# wrote to csv to avoid having to load this again.
+ghcnd_station_list <- read.csv("data/ghcnd_station_list.csv", stringsAsFactors = FALSE)
 # Create temporary data frame formatted for meteo_nearby_stations()
 # filtering out events without geo location
 temp_df <- data.frame(id =  events$EVENTS.ID[!is.na(events$EVENTS.begin_lat)], 
@@ -193,7 +195,7 @@ source("data_cleaning/get_archived_GFSX_MOS.R")
 
 #### collect 5 day ahead forecast on Q12 ####
 mos5day12 <- NULL
-for (eid in 1:25){ # length(events$EVENTS.ID)) {
+for (eid in 1:length(events$EVENTS.ID)) {
   print(eid)
   mos_df <- get_archived_GFSX_MOS(events$MOS.ICAO[eid],
                                   format(events$EVENTS.begin_date[eid]-5, "%Y%m%d"),
