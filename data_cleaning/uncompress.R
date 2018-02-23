@@ -51,6 +51,7 @@ Decompress7Zip <- function(zipFileName, outputDirectory, delete)
                      "\"-o",
                      outputDirectory,
                      "\" ",
+                     "\"-y",
                      "")
   
   print(arguments)
