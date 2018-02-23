@@ -180,7 +180,7 @@ events <- merge(events, station_obs,
                              by.y = c("prcp.id", "prcp.date"))
 
 # names(storm_events_precip)[33] <- "GHCND.prcp_cat"
-events <- events %>% rename(GHCND.prcp_cat = prcp.prcp)
+events <- events %>% dplyr::rename(GHCND.prcp_cat = prcp.prcp)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
