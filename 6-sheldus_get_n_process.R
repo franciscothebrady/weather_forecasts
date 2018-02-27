@@ -338,7 +338,7 @@ events <- cbind.data.frame(events, mos_q12)
 
 rm(mos_q24, mos_q12)
 
-write.csv(events, "data/6_events_processed.csv")
+write.csv(events, "data/6_events_processed.csv", row.names = FALSE)
 
 #### accuracy tests ####
 results <- events %>% 
