@@ -321,24 +321,37 @@ for (eid in 1:length(events$EVENTS.ID)) {
 ####-- save workspace to not have to re-create dataset when something goes wrong ####
 #-- for time consuming processes
 save.image(paste0("data/", format(now(), "%Y_%m_%d_%H_%M_%S"),"_after_fcsts.RData"))
-#load("data/snapshot_2017-07-09_1939.RData")
+load("data/2018_02_23_19_42_13_after_fcsts.RData")
 rm(j, eid)
-
-#### STOP HERE: look at output, rename by name instead of index once you know whats what.
 
 rm(ghcnd_station_list, storm_events)
 
-##### merge in forecasts with sheldus events ####
+##### merge in Q24 forecasts with sheldus events ####
 mos_q24 <- merge(mos2day24, mos6day24, by.x="index", by.y="index")
 mos_q24 <- data.frame(Q24.f2=mos_q24$Q24.x, Q24.f6=mos_q24$Q24.y)
 events <- cbind.data.frame(events, mos_q24)
 
-# names(storm_events_precip)[34] <- "Q12.f1"
-dplyr::rename(events, Q12.f1=mos_q24) # rename by name
+#### merge in Q12 forecasts with sheldus events ####
+mos_q12 <- merge(mos1day12, mos5day12, by.x="index", by.y="index")
+mos_q12 <- data.frame(Q12.f1=mos_q12$Q12.x, Q12.f5=mos_q12$Q12.y)
+events <- cbind.data.frame(events, mos_q12)
 
-# dplyr::rename(events, Q
-# names(storm_events_precip)[35] <- "Q12.f5"
-rm(mos_q24)
+rm(mos_q24, mos_q12)
+
+write.csv(events, "data/6_events_processed.csv")
+
+#### accuracy tests ####
+results <- events %>% 
+  dplyr::mutate(judge1 = GHCND.prcp_cat - as.numeric(as.character(Q24.f2)),
+                judge2 = GHCND.prcp_cat - as.numeric(as.character(Q24.f6))) %>%
+  summarise(two_day_ahead = mean(judge1, na.rm = TRUE), 
+            six_day_ahead = mean(judge2, na.rm = TRUE))
+
+# NEXT -
+# figure out apply with unemployment and seasonal adjustment.
+
+
+
 # push to github
 #### need to first set user/email and then stage.
 cmd <- '"C:/Program Files/Git/cmd/git.exe" commit -am "uploading sheldus events with forecasts"'
