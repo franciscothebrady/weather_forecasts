@@ -36,7 +36,7 @@ head(unemp_df)
 # i'm p sure final or seasonaladju is the one we want here. 
 unemp_adju <- unemp_df %>% select(date, series.id, unemp = seasonaladj) # this works as output 
 # now we can work on adding this to the events from t thru t+6
-
+write.csv(unemp_adju, "data/unemp_adju.csv")
 #### OLD STUFF ####
 # # sanity check
 # table(is.na(bls_wide))
