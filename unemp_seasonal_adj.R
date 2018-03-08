@@ -16,7 +16,26 @@ bls_split <- split.data.frame(bls_vars, f = bls_vars$series.id)
 # apply seasonal adjustment to each list element
 library(seasonal)
 # first turn the list into ts objects
-unemp_ts <- lapply(bls_split, ts(x, start = c(2010,1), frequency = 12))
+unemp_ts <- lapply(bls_split, function(x) { ts(x$unemp, 
+                                               start = c(2010,1),
+                                               frequency = 12)})
+
+# use lapply again to seasonally adjust
+
+# unemp_adju <- lapply(unemp_ts, seas(regression.aictest = NULL)) # r didnt like this
+# threw an error because of trading days 
+
+unemp_adju <- unemp_ts %>% lapply(. %>% seas(regression.aictest = NULL)) # did ok with this.
+# giving a warning: Model used in SEATS is different: (0 2 2)(0 1 1)
+# need to look that up later
+# then use map to morph back into a dataframe (remember to keep ids/listnames as a column)
+library(purrr)
+unemp_df <- map_df(unemp_adju, as.data.frame, .id = "series.id")
+# take a look
+head(unemp_df)
+# i'm p sure final or seasonaladju is the one we want here. 
+unemp_adju <- unemp_df %>% select(date, series.id, unemp = seasonaladj) # this works as output 
+# now we can work on adding this to the events from t thru t+6
 
 #### OLD STUFF ####
 # # sanity check
