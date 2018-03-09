@@ -1,56 +1,31 @@
 # visualizations
-
-# step 1 - read in tidy events
-# step 2 - create boxplots based on forecasts and weather for each year
-# step 3 - make some sort of plot for damage over difference in skill. 
-# do this by creating a difference variable (GHCND - F2, GHCND - F6) and plotting that with Damage over GDP.
-
-
-
-
-
-
+# try to get some cool viz with this data
 library(ggplot2)
-# showing 24h 3-day forecast 
-plotcast <- ggplot(combined_events, aes(x = GHCND.prcp_cat, y = Q24.f2)) + 
-  geom_boxplot() + scale_y_continuous(name = "3-Day, 24h QPF Category") +
-  scale_x_discrete(limits = c(0:6), name = "Observed Precipitation Categories") + 
-  ggtitle("2014, Forecasted Precipitation vs. Observed") + geom_segment(aes(x=0,y=0, xend=7, yend=7))
+library(dplyr)
 
-plotcast2 <- ggplot(combined_events, aes(x = GHCND.prcp_cat, y = Q24.f6)) + 
-  geom_boxplot() + scale_y_continuous(name = "6-Day, 24h QPF Category") +
-  scale_x_discrete(limits = c(0:6), name = "Observed Precipitation Categories") + 
-  ggtitle("2014, Forecasted Precipitation vs. Observed") + geom_segment(aes(x=0,y=0, xend=7, yend=7))
+# read in events data and seasonally adjusted unemployment
+events <- read.csv("data/6_events_processed.csv", stringsAsFactors = FALSE)
 
+unemp_adju <- read.csv("data/unemp_adju.csv", stringsAsFactors = FALSE)
 
-boxplot(GHCND.prcp_cat ~ Q24.f6, data = combined_events)
-# try with a scatterplot 
+# aim: grab unemployment for each location
+#      from: t0 - time of the event 
+#      to:   t6 - time 6 months after event
+# 
+# 1. read in events/ unemp
+# 2. merge by event start date
+# 3. ?????
+events$unemp <- NULL
 
-#ggplot(mydata) + geom_boxplot(aes(x = date, y = measure, group = date))
-
-ggplot(combined_events) + geom_boxplot(aes(x = GHCND.prcp_cat, y = Q24.f6))
-
-
-plotcast # Warning message: Removed 148 rows containing non-finite values (stat_boxplot). 
-# need to figure out how to count category 0 forecasts and observed. since it still might be some precip.
-
-storm_events <- combined_events %>% select(EVENTS.czname, EVENTS.state, EVENTS.year, 
-                                           EVENTS.damage_value, EVENTS.damage_magnitude, GHCND.prcp_cat,
-                                           Q24.f2, Q24.f6)
-storm_events <- merge(storm_events, gdp_msa_counties, 
-                      by.x = c("EVENTS.czname","EVENTS.state","EVENTS.year"), 
-                      by.y = c("cnty","state.full", "YEAR"))
+# create df of unemp and events
+new_df <- left_join(events, unemp_adju, by = "series.id") 
+new_df <- filter(new_df, as.Date(new_df$date) >= as.Date(new_df$EVENTS.begin_date))
+new_df$EVENTS.begin_date <- ymd(new_df$EVENTS.begin_date)
+new_df$date <- ymd(new_df$date)
 
 
-# install.packages("tigris")
-library(tigris)
-cbsa <- core_based_statistical_areas()
-storm_map <- geo_join(cbsa, storm_events, "CBSAFP", "CBSA.code", how = "inner")
-# install.packages("tmap")
-library(tmap)
-# this is wrong. need to convert storm damages into real values first
-# dammit brian! 
-# basically take magnitude and use that as the number of zeros behind the number in the value column.
-qtm(storm_map, fill = storm_map$EVENTS.damage_value)
-tm_shape(storm_map) + 
-  tm_polygons("EVENTS.damage_value", id = "CBSA.code")
+ggplot(new_df, aes(date, unemp, group=fcc.county.FIPS, color=unemp)) + 
+  geom_line() +
+  theme(axis.text.x = element_text(angle = 90)) + 
+  geom_vline(data = new_df, aes(xintercept = as.numeric(EVENTS.begin_date),
+                                size=adj.dmg.pcapita)) 

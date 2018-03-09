@@ -347,8 +347,6 @@ results <- events %>%
   summarise(two_day_ahead = mean(judge1, na.rm = TRUE), 
             six_day_ahead = mean(judge2, na.rm = TRUE))
 
-# NEXT -
-# figure out apply with unemployment and seasonal adjustment.
 
 
 

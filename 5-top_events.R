@@ -52,6 +52,12 @@ small_plot <- ggplot(data = smaller_sample, aes(x =  date, y = unemp, group = fc
                                      color = factor(fcc.county.name)), show.legend = FALSE) +
   scale_x_date(date_breaks = "3 months", date_labels = "%m-%y") + theme(axis.text.x = element_text(angle = -45, hjust = 0.5))
 small_plot
+
+
+
+##
+# merge events and unemp_adju on series id and dates + 6 
+# plot 
 # plot for event lines 
 # not sure why the event lines are not showing up.
 # ggplot(data = top_unemp, aes(x =  date, y = unemp, group = fcc.county.name))  + geom_line(aes(color = fcc.county.name)) + 
