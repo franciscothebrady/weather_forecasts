@@ -38,7 +38,7 @@ unemp_adju <- unemp_df %>% select(date, series.id, unemp = final) # this works a
 # now we can work on adding this to the events from t thru t+6
 write.csv(unemp_adju, "data/unemp_adju.csv", row.names = FALSE)
 
-ggplot(unemp_adju, aes(x = date, y = unemp, group=series.id, color=series.id)) + 
+ggplot2::ggplot(unemp_adju, aes(x = date, y = unemp, group=series.id, color=series.id)) + 
   geom_line() + theme(legend.position = "none")
 #### OLD STUFF ####
 # # sanity check
