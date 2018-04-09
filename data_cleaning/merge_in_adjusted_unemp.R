@@ -24,16 +24,27 @@ test <- test %>% filter(date <= floor_date(EVENTS.begin_date, "month") &
 
 # this yields exactly the same number of obs as before, which i think is not right...
 
-#### mutate_if ####
+#### mutate & ifelse ####
 
 test <- events
 test <- test %>%
-  mutate(unemp_event_date = 
-           # condition (match on series.id/location, year and month)
+  # unemp at the time
+  mutate(unemp_t = 
+           #condition (match on series.id/location, year and month)
            if_else(unemp_adju$series.id == events$series.id & 
                                       unemp_adju$Year == events$Year &
                                       unemp_adju$Month == events$Month, 
                    # TRUE
                    unemp_adju$unemp,
                    # FALSE
-                   NA))
+                   NA),
+         # unemp + 1 month
+         # same conditions
+         unemp_1 = unemp_adju$series.id == events$series.id & 
+           unemp_adju$Year == events$Year &
+           unemp_adju$Month == events$Month, 
+         # TRUE
+         # this is the part which i don't think is possible in this way.
+         unemp_adju$unemp + months(1),
+         # FALSE
+         NA)
