@@ -16,7 +16,9 @@
 
 #-- set working directory
 #setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts")
-setwd("~/weather_forecasts")
+getwd()
+#setwd("~/weather_forecasts")
+setwd("/href/scratch3/m1fmb02/weather_forecasts/")
 
 
 #-- load required packages
@@ -386,7 +388,7 @@ source("data_cleaning/get_archived_GFSX_MOS.R")
 
 #-- beware! nasty hack job below
 
-# collect 5 day ahead forecast on Q12
+# collect 5 day ahead forecast on Q12 and P12
 mos5day12 <- NULL
 for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
   print(eid)
@@ -401,7 +403,7 @@ for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
                          ICAO=storm_events_precip$MOS.ICAO[eid],
                          RTDT=NA,
                          FCDT=as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"),
-                         Q12=NA)
+                         Q12=NA, P12 = NA)
     )
   } else {
     print(dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu")))
@@ -410,7 +412,8 @@ for (eid in 1:length(storm_events_precip$EVENTS.ID)) {
                          index=eid,
                          EVENTS.ID=storm_events_precip$EVENTS.ID[eid],
                          dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
-                         Q12=dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q12)
+                         Q12=dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$Q12,
+                         P12=dplyr::filter(mos_df, FCDT==as.Date(storm_events_precip$EVENTS.begin_date[eid], tz = "Zulu"))$P12)
     )
   }
 }
