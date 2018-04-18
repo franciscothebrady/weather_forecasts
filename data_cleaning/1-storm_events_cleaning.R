@@ -11,7 +11,7 @@
 #    output from FCC API
 # 7. writes it all to a csv (without headers--fix this later by just saving headers separately somewhere)
 
-setwd("~/weather_forecasts/")
+# setwd("~/weather_forecasts/") # uncomment for windows
 
 # load libraries
 library(maps)
@@ -30,8 +30,9 @@ library(lubridate)
 
 # grab a list of the storm event files
 
-files <- list.files(path="data/", pattern="StormEvents_details-ftp_v1.0_d*",
-                    full.names = T, recursive = FALSE)
+files <- list.files(path="../data/", # change to path="/data/" when running on windows
+                    pattern="StormEvents_details-ftp_v1.0_d*",
+                    full.names = TRUE, recursive = FALSE)
 
 events_clean <- function(){
   
@@ -158,10 +159,10 @@ events_clean <- function(){
 
     # write to csv
   colnames <- names(events)
-  write.table(colnames, "data/colnames.csv",
+  write.table(colnames, "../data/colnames.csv",
               append = FALSE, row.names = FALSE, col.names = FALSE)
   
-  write.table(events, "data/1_events.csv",
+  write.table(events, "../data/1_events.csv",
               row.names = FALSE, col.names = FALSE, append = TRUE)
   
   print(paste("Finished with", lubridate::year(events$EVENTS.begin_date[1]),
