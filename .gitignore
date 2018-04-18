@@ -6,3 +6,4 @@
 data/*.gz
 data/*.Z
 .zip
+api_keys.txt

@@ -55,7 +55,9 @@ events_clean <- function(){
   events$BEGIN_LAT[events$STATE=="MONTANA" & events$BEGIN_LAT >= 49] <- 48.999
   
   dim(events)
-  # and events outside of CONUS (minlon, minlat),(maxlon, maxlat) : (-124.848974, 24.396308) - (-66.885444, 49.384358)
+  # and events outside of CONUS 
+  # (minlon, minlat),(maxlon, maxlat) :
+  # (-124.848974, 24.396308) - (-66.885444, 49.384358)
   events <- dplyr::filter(events, BEGIN_LAT >=  24 & BEGIN_LAT <= 50, 
                           BEGIN_LON >= -125 & BEGIN_LON <= -67)
   
@@ -74,12 +76,18 @@ events_clean <- function(){
   
   # Convert event time from local to UTC timezone
   events <- dplyr::mutate(events,
-                BEGIN_TIME_UTC = BEGIN_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
-                END_TIME_UTC = END_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
-                BEGIN_DATE_UTC = ifelse(BEGIN_TIME_UTC >= 2400, BEGIN_DATE+1, BEGIN_DATE),
-                END_DATE_UTC = ifelse(END_TIME_UTC >= 2400, END_DATE + 1, END_DATE),
-                BEGIN_TIME_UTC = ifelse(BEGIN_TIME_UTC >= 2400, BEGIN_TIME_UTC - 2400, BEGIN_TIME_UTC),
-                END_TIME_UTC = ifelse(END_TIME_UTC >= 2400, END_TIME_UTC - 2400, END_TIME_UTC))
+                BEGIN_TIME_UTC = 
+                  BEGIN_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
+                END_TIME_UTC = 
+                  END_TIME - as.numeric(gsub("[[:alpha:]]", "", CZ_TIMEZONE))*100,
+                BEGIN_DATE_UTC = 
+                  ifelse(BEGIN_TIME_UTC >= 2400, BEGIN_DATE+1, BEGIN_DATE),
+                END_DATE_UTC = 
+                  ifelse(END_TIME_UTC >= 2400, END_DATE + 1, END_DATE),
+                BEGIN_TIME_UTC = 
+                  ifelse(BEGIN_TIME_UTC >= 2400, BEGIN_TIME_UTC - 2400, BEGIN_TIME_UTC),
+                END_TIME_UTC = 
+                  ifelse(END_TIME_UTC >= 2400, END_TIME_UTC - 2400, END_TIME_UTC))
   
   # Pad BEGIN_TIME_UTC and END_TIME_UTC with 0
   events$BEGIN_TIME_UTC <- str_pad(events$BEGIN_TIME_UTC, 4, pad = "0")
@@ -91,7 +99,8 @@ events_clean <- function(){
                     nchar(events$DAMAGE_PROPERTY)), ""),
     strsplit(substr(events$DAMAGE_CROPS, nchar(events$DAMAGE_CROPS),
                     nchar(events$DAMAGE_CROPS)), ""))
-  damage_magnitude <- ifelse(damage_magnitude == "K", 3, ifelse(damage_magnitude == "M", 6, 9))
+  damage_magnitude <- ifelse(damage_magnitude == "K", 3,
+                             ifelse(damage_magnitude == "M", 6, 9))
   damage_numeric <- cbind(
     as.numeric(strsplit(events$DAMAGE_PROPERTY, "[[:alpha:]]")),
     as.numeric(strsplit(events$DAMAGE_CROPS, "[[:alpha:]]")))
@@ -102,25 +111,27 @@ events_clean <- function(){
   rm(damage_magnitude, damage_numeric, damage_value)
   
   # select columns and renames, drop unnamed
-  events <- dplyr::select(events, c(EVENTS.begin_date=BEGIN_DATE,
-                           EVENTS.begin_time_UTC=BEGIN_TIME_UTC,
-                           EVENTS.end_date=END_DATE,
-                           EVENTS.end_time_UTC=END_TIME_UTC,
-                           EVENTS.ID=EVENT_ID,
-                           EVENTS.state=STATE,
-                           EVENTS.fips=STATE_FIPS,
-                           EVENTS.type=EVENT_TYPE,
-                           EVENTS.czfips=CZ_FIPS,
-                           EVENTS.czname=CZ_NAME,
-                           EVENTS.wfo=WFO,
-                           EVENTS.begin_lat=BEGIN_LAT,
-                           EVENTS.begin_lon=BEGIN_LON,
-                           EVENTS.end_lat=END_LAT,
-                           EVENTS.end_lon=END_LON,
-                           EVENTS.damage_value=DAMAGE_VALUE,
-                           EVENTS.damage_magnitude=DAMAGE_VALUE.magnitude,
-                           EVENTS.damage_unit=DAMAGE_VALUE.unit))
-
+  events <- dplyr::select(events,
+                          c(EVENTS.begin_date        = BEGIN_DATE,
+                            EVENTS.begin_time_UTC    = BEGIN_TIME_UTC,
+                            EVENTS.end_date          = END_DATE,
+                            EVENTS.end_time_UTC      = END_TIME_UTC,
+                            EVENTS.ID                = EVENT_ID,
+                            EVENTS.state             = STATE,
+                            EVENTS.fips              = STATE_FIPS,
+                            EVENTS.type              = EVENT_TYPE,
+                            EVENTS.czfips            = CZ_FIPS,
+                            EVENTS.czname            = CZ_NAME,
+                            EVENTS.wfo               = WFO,
+                            EVENTS.begin_lat         = BEGIN_LAT,
+                            EVENTS.begin_lon         = BEGIN_LON,
+                            EVENTS.end_lat           = END_LAT,
+                            EVENTS.end_lon           = END_LON,
+                            EVENTS.damage_value      = DAMAGE_VALUE,
+                            EVENTS.damage_magnitude  = DAMAGE_VALUE.magnitude,
+                            EVENTS.damage_unit       = DAMAGE_VALUE.unit
+                          ))
+  
   # reorder variables
   events <- events[ , c("EVENTS.begin_date",
                         "EVENTS.begin_time_UTC",
@@ -141,18 +152,20 @@ events_clean <- function(){
                         "EVENTS.damage_magnitude",
                         "EVENTS.damage_unit")]
   
-  
   # sanity check to see if lat/lon vars are actually numbers
   print(is.numeric(events$EVENTS.begin_lon))
   print(is.numeric(events$EVENTS.begin_lat))
 
     # write to csv
   colnames <- names(events)
-  write.table(colnames, "data/colnames.csv", append = FALSE, row.names = FALSE, col.names = FALSE)
+  write.table(colnames, "data/colnames.csv",
+              append = FALSE, row.names = FALSE, col.names = FALSE)
   
-  write.table(events, "data/1_events.csv", row.names = FALSE, col.names = FALSE, append = TRUE)
+  write.table(events, "data/1_events.csv",
+              row.names = FALSE, col.names = FALSE, append = TRUE)
   
-  print(paste("Finished with", lubridate::year(events$EVENTS.begin_date[1]), "events."))
+  print(paste("Finished with", lubridate::year(events$EVENTS.begin_date[1]),
+              "events."))
 
   }
 }
