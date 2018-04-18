@@ -331,7 +331,8 @@ for (eid in 1:length(events$EVENTS.ID)) {
                          index=eid,
                          EVENTS.ID=events$EVENTS.ID[eid],
                          dplyr::filter(mos_df, FCDT==as.Date(events$EVENTS.begin_date[eid], tz = "Zulu"))[1:3],
-                         Q24=dplyr::filter(mos_df, FCDT==as.Date(events$EVENTS.begin_date[eid], tz = "Zulu"))$Q24)
+                         Q24=dplyr::filter(mos_df, FCDT==as.Date(events$EVENTS.begin_date[eid], tz = "Zulu"))$Q24,
+                         P24=dplyr::filter(mos_df, FCDT==as.Date(events$EVENTS.begin_date[eid], tz = "Zulu"))$P24)
     )
   }
 }
