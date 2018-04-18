@@ -17,19 +17,19 @@
 #-- set working directory
 #setwd("C:/Users/franc/OneDrive/Documents/Research/Weather Forecasts")
 
-setwd("~/weather_forecasts")
+#setwd("~/weather_forecasts")
 #setwd("/href/scratch3/m1fmb02/weather_forecasts/")
 
 #-- load required packages
-library(checkpoint)
-checkpoint("2017-07-04")
+#library(checkpoint)
+#checkpoint("2017-07-04")
 library(plyr)
 library(dtplyr)
 library(stringr)
 library(purrr)
 library(rnoaa)
 library(bea.R)
-
+library(tidyverse)
 library(geosphere)
 library(weathermetrics)
 
@@ -38,8 +38,10 @@ library(weathermetrics)
 # read into this script. to check it out, go down to old code
 # to the section marked STORM CLEANING
 
-# read in events 
-
+# read in events and then tack on colnames weirdly
+events <- readr::read_csv("/href/scratch3/m1fmb02/weather_forecasts/data/1_events.csv", col_names = FALSE)
+colnames <- read.csv("/href/scratch3/m1fmb02/weather_forecasts/data/colnames.csv")
+names(events) <- colnames$x
 
 #-- find closest GHCND station of event and merge it in events
 
@@ -55,7 +57,7 @@ temp_df <- data.frame(id = events$EVENTS.ID[!is.na(events$EVENTS.begin_lat)],
 # Find closest MET station near precip event
 met_stations <- meteo_nearby_stations(lat_lon_df = temp_df,
                                       station_data = ghcnd_station_list, limit = 1, var = "PRCP",
-                                      year_min = 2015, year_max = 2015)
+                                      year_min = 2010, year_max = 2016)
 met_stations <- plyr::rbind.fill(met_stations)  # convert list of data frames into data frame
 met_stations$EVENTS.ID <- temp_df$id  # add EVENTS.ID for merging with events
 
@@ -72,7 +74,7 @@ events <- merge(events, met_stations, by = "EVENTS.ID")
 # We could have used rnoaa::isd_stations() function, but there are fewer MOS stations
 # than ISD stations, so when we pull archived MOS data, it will return errors for
 # ISD stations that does not have MOS data.
-mos_stations <- read.csv("data/mos_stations.csv", stringsAsFactors = FALSE)
+mos_stations <- read.csv("/href/scratch3/m1fmb02/weather_forecasts/data/mos_stations.csv", stringsAsFactors = FALSE)
 
 
 #-- find nearest MOS station to event and merge in events
@@ -152,7 +154,7 @@ rm(result)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-save.image(paste0("data/snapshots/",today(),"post_ghcnd.RData"))
+save.image(paste0("/href/scratch3/m1fmb02/weather_forecasts/data/snapshots/",today(),"post_ghcnd.RData"))
 #load("data/snapshot_2017-07-06_2330.RData")
 
 
@@ -209,7 +211,7 @@ events <- rename(events, GHCND.prcp_cat = prcp.prcp)
 # to check it out, go down to the section named #### OLD MESONET MOS FUNCTION ####
 
 # load MOS retrival function
-source("data_cleaning/get_archived_GFSX_MOS.R")
+source("/href/scratch3/m1fmb02/weather_forecasts/data_cleaning/get_archived_GFSX_MOS.R")
 
 #-- beware! nasty hack job below
 
@@ -362,10 +364,10 @@ events <- cbind.data.frame(events, mos_q24)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-save.image(paste0("data/snapshots/",today(),"post_mos.RData"))
+save.image(paste0("/href/scratch3/m1fmb02/weather_forecasts/data/snapshots/",today(),"post_mos.RData"))
 
 # write to csv for next script!
-readr::write_csv(events, "data/2_events.csv")
+readr::write_csv(events, "/href/scratch3/m1fmb02/weather_forecasts/data/2_events.csv", col_names = TRUE)
 
 
 #### OLD CODE ####

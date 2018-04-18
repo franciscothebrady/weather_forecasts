@@ -27,10 +27,12 @@ library(weathermetrics)
 library(jsonlite)
 library(httr)
 library(lubridate)
+library(tidyverse)
+library(readr)
 
 # grab a list of the storm event files
 
-files <- list.files(path="../data/", # change to path="/data/" when running on windows
+files <- list.files(path="/href/scratch3/m1fmb02/weather_forecasts/data/", # change to path="/data/" when running on windows
                     pattern="StormEvents_details-ftp_v1.0_d*",
                     full.names = TRUE, recursive = FALSE)
 
@@ -41,7 +43,7 @@ events_clean <- function(){
   print(paste("Current time is", Sys.time()))
   #-- get severe weather data with damage reports from NOAA
   #-- (https://www.ncdc.noaa.gov/swdi/#Intro)
-  events <- as.data.frame(read.csv(files[i], stringsAsFactors = FALSE))
+  events <- readr::read_csv(files[i])
   
   # filter out events outside CONUS (57+), HI (15), and AK(2).
   events <- dplyr::filter(events, STATE_FIPS < 57 & STATE_FIPS > 2 & STATE_FIPS!=15)
@@ -159,11 +161,11 @@ events_clean <- function(){
 
     # write to csv
   colnames <- names(events)
-  write.table(colnames, "../data/colnames.csv",
-              append = FALSE, row.names = FALSE, col.names = FALSE)
+  write.table(colnames, "/href/scratch3/m1fmb02/weather_forecasts/data/colnames.csv",
+            append = FALSE, sep = ",")
   
-  write.table(events, "../data/1_events.csv",
-              row.names = FALSE, col.names = FALSE, append = TRUE)
+  readr::write_csv(events, "/href/scratch3/m1fmb02/weather_forecasts/data/1_events.csv",
+                   append = TRUE, col_names = FALSE)
   
   print(paste("Finished with", lubridate::year(events$EVENTS.begin_date[1]),
               "events."))
