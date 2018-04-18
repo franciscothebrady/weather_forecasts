@@ -11,10 +11,10 @@
 # 6. cbinds the relevant results to the dataset and writes to csv.
 
 api_append <- function() {
-  header_names <- read.csv("filepath to colnames", header = FALSE)
-  events <- read.csv("filepath to 1_events", header = FALSE)
+  header_names <- read.csv("data/colnames.csv", header = FALSE)
+  events <- read.csv("data/1_events.csv", header = FALSE)
   
-  names(events, header_names)
+  names(events) <- header_names
   
   #apply FCC Census Block API from: https://www.fcc.gov/general/census-block-conversions-api
   # set up empty df for the response

@@ -4,10 +4,9 @@
 # what this file does:
 # 1. reads in sheldus data
 # 2. cleans and combines them into one file
-# 3. merges them with the events data
-# 3a. deflates sheldus data using 2009 CPI
-# 4. reads in population data
-# 5. cleans and merges that with events and sheldus data
+# 3. deflates sheldus data using 2009 CPI
+# 4. reads in events data
+# 5. cleans and merges events and sheldus data
 # 6. spits out a csv for further processing 
 
 library(readr)
@@ -19,7 +18,7 @@ library(tidyr)
 library(stringr)
 
 options(scipen = 999) # Do not print scientific notation
-options(stringsAsFactors = FALSE) # Do not load strings as factors
+# options(stringsAsFactors = FALSE) # Do not load strings as factors
 
 setwd("~/weather_forecasts/")
 #### load in sheldus data ####
@@ -40,16 +39,8 @@ sheldus$state <- tolower(sheldus$state)
 # combine prop and crop values for total damages
 sheldus$adj.dmg.tot <- sheldus$adj.09.crop.dmg + sheldus$adj.09.prop.dmg
 
-# read in events data for merging
-events <- read_csv("data/3_econ-vars.csv")
-names(sheldus)
-names(events)
 # we should keep the EVENTS.ID, to merge on later.
 anyDuplicated(events$EVENTS.ID)
-
-
-events$Year <- as.integer(year(events$EVENTS.begin_date))
-events$Month <- as.integer(month(events$EVENTS.begin_date))
 
 # use CPI to adjust events data, (2009 base year)
 getSymbols("CPIAUCSL", src='FRED') #Consumer Price Index for All Urban Consumers: All Items
@@ -61,6 +52,8 @@ cf <- avg.cpi/as.numeric(avg.cpi['2009'])
 events$adjusted2009damage_value <- matrix(unlist(lapply(events$Year, function(x) {
   as.data.frame(cf$CPIAUCSL[match(x, year(cf[,1]))])[,1]})), 
   byrow=T)[,1] * events$EVENTS.damage_value * 10^events_sheldus$EVENTS.damage_magnitude
+
+#### read in events for merge ####
 
 # join events and sheldus data by Year/Month and Fips/State
 events_sheldus <- inner_join(x = events, y = sheldus, by = c("Year"="year", "Month"="month", "fcc.county.FIPS"="county.FIPS",
@@ -84,25 +77,10 @@ events_sheldus_unemp <- merge(events_sheldus, bls_vars, by.x = c("Year", "Month"
                               by.y = c("Year","Month", "series.id", "fcc.county.FIPS", "fcc.county.name"))
 
 names(events_sheldus_unemp)
-events_final <- select(events_sheldus_unemp, Year, Month, EVENTS.ID, EVENTS.begin_date, EVENTS.begin_time_UTC, state, 
+events <- select(events_sheldus_unemp, Year, Month, EVENTS.ID, EVENTS.begin_date, EVENTS.begin_time_UTC, state, 
                        series.id, fcc.county.FIPS, fcc.county.name, EVENTS.begin_lat, EVENTS.begin_lon, EVENTS.wfo, 
                        adj.dmg.tot, unemp, adj.dmg.pcapita)
 
-# move to analysis script
-# events_final <- events_final %>% mutate(unemp = as.numeric(unemp), 
-#                                         Date = ymd(as.numeric(paste0(Year, sprintf("%02d", Month), "01")))) %>% 
-#   group_by(fcc.county.FIPS) %>% arrange(Date, .by_group = TRUE) 
-# # summary of damages and unemp
-# events_sum <- events_final %>% group_by(fcc.county.FIPS, Date) %>% 
-#   summarise(mean.adj.dmg.total=mean(adjusted2009damage_value, na.rm = TRUE),
-#             unemp = mean(unemp, na.rm = TRUE),
-#             mean.sheldus.dmg = mean(adj.dmg.tot, na.rm = TRUE))
-# # event frequencies by county
-# events_freq <- events_final %>% group_by(fcc.county.FIPS, county.x) %>% 
-#   summarise(freq = n())
-
-# reshaping population estimates with tidyr
-# read in population estimates
 county.pop.ests <- read_csv("data/county_pop_ests/PEP_2016_PEPANNRES_with_ann.csv", 
                             skip = 1)
 names(county.pop.ests) <- c("geo.id","fips","geography","census.2010","base.2010",

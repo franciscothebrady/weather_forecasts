@@ -1,3 +1,5 @@
+library(tidyverse)
+library(bea.R)
 #-- API keys (fb's API keys)
 # Putting this here is very bad practice!
 # these are now in txt file. for the name just check the gitignore. 
@@ -52,3 +54,4 @@ rm(cbsa_info)
 
 
 # here is where we would read in the events and tack on the gdp. 
+events <- read_csv("data/2_events.csv")
