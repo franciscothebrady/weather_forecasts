@@ -154,7 +154,7 @@ rm(result)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-save.image(paste0("/href/scratch3/m1fmb02/weather_forecasts/data/snapshots/",today(),"post_ghcnd.RData"))
+save.image(paste0("/href/scratch3/m1fmb02/weather_forecasts/data/snapshots/", lubridate::today(),"post_ghcnd.RData"))
 #load("data/snapshot_2017-07-06_2330.RData")
 
 
@@ -364,7 +364,7 @@ events <- cbind.data.frame(events, mos_q24)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-save.image(paste0("/href/scratch3/m1fmb02/weather_forecasts/data/snapshots/",today(),"post_mos.RData"))
+save.image(paste0("/href/scratch3/m1fmb02/weather_forecasts/data/snapshots/",lubridate::today(),"post_mos.RData"))
 
 # write to csv for next script!
 readr::write_csv(events, "/href/scratch3/m1fmb02/weather_forecasts/data/2_events.csv", col_names = TRUE)
