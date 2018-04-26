@@ -5,7 +5,7 @@ library(tidyverse)
 library(lubridate)
 
 # read in events 
-events <- read_csv("data/6_events_processed.csv")
+events <- read_csv("data/2_events.csv")
 # remove unemployment variable because it's not seasonally adjusted
 events <- events %>% select(-unemp) 
 # read in unemployment
@@ -20,30 +20,52 @@ unemp_adju <- unemp_adju %>%
 # but ALSO keep unemp up to 6+ months after the event date
 test_full <- full_join(events, unemp_adju, by=c("series.id")) 
 test <- test %>% filter(date <= floor_date(EVENTS.begin_date, "month") & 
-                          date <= floor_date(EVENTS.begin_date, "month") %m+% months(6))
+                          date <= floor_date(EVENTS.begin_date, "month") %m+% months(1))
 
 # this yields exactly the same number of obs as before, which i think is not right...
-test_full <- test_full %>% 
-  mutate(unemp_1 = ifelse(
-    add_with_rollback(test_full$EVENTS.begin_date, 
-                      months(1)) == test_full$date, test_full$unemp, NA),
-    unemp_2 = ifelse(
-      add_with_rollback(test_full$EVENTS.begin_date, 
-                        months(2)) == test_full$date, test_full$unemp, NA),
-    unemp_3 = ifelse(
-      add_with_rollback(test_full$EVENTS.begin_date, 
-                        months(3)) == test_full$date, test_full$unemp, NA),
-    unemp_4 = ifelse(
-      add_with_rollback(test_full$EVENTS.begin_date, 
-                        months(4)) == test_full$date, test_full$unemp, NA),
-    unemp_5 = ifelse(
-      add_with_rollback(test_full$EVENTS.begin_date, 
-                        months(5)) == test_full$date, test_full$unemp, NA),
-    unemp_6 = ifelse(
-      add_with_rollback(test_full$EVENTS.begin_date, 
-                        months(6)) == test_full$date, test_full$unemp, NA)
-    )
-test_full <- test_full %M% mutate(yearmon = zoo::yearmon())
+
+events <- events %>%
+  # match unemployment time t
+  # if series.id == series.id & time == time
+  mutate(unemp = ifelse(events$series.id == unemp_adju$series.id & 
+                          floor_date(events$EVENTS.begin_date, unit = "months") == unemp_adju$date, 
+                        unemp_adju$unemp, NA),
+         # match unemp time t+1
+         # if series.id == series.id & time t+1 == time t+1
+         unemp_1 = ifelse(events$series.id == unemp_adju$unemp & 
+                            floor_date(add_with_rollback(events$EVENTS.begin_date, months(1)), 
+                                       unit = "months") == unemp_adju$date, 
+                          unemp_adju$unemp, NA),
+         # if series.id == series.id & time t+2 == time t+2
+         unemp_2 = ifelse(events$series.id == unemp_adju$unemp & 
+                            floor_date(add_with_rollback(events$EVENTS.begin_date, months(2)), 
+                                       unit = "months") == unemp_adju$date, 
+                          unemp_adju$unemp, NA),
+         # if series.id == series.id & time t+3 == time t+3
+         unemp_3 = ifelse(events$series.id == unemp_adju$unemp & 
+                            floor_date(add_with_rollback(events$EVENTS.begin_date, months(3)), 
+                                       unit = "months") == unemp_adju$date, 
+                          unemp_adju$unemp, NA),
+         # if series.id == series.id & time t+4 == time t+4
+         unemp_4 = ifelse(events$series.id == unemp_adju$unemp & 
+                            floor_date(add_with_rollback(events$EVENTS.begin_date, months(4)), 
+                                       unit = "months") == unemp_adju$date, 
+                          unemp_adju$unemp, NA),
+         # if series.id == series.id & time t+5 == time t+5
+         unemp_5 = ifelse(events$series.id == unemp_adju$unemp & 
+                            floor_date(add_with_rollback(events$EVENTS.begin_date, months(5)), 
+                                       unit = "months") == unemp_adju$date, 
+                          unemp_adju$unemp, NA),
+         # if series.id == series.id & time t+6 == time t+6
+         unemp_6 = ifelse(events$series.id == unemp_adju$unemp & 
+                            floor_date(add_with_rollback(events$EVENTS.begin_date, months(6)), 
+                                       unit = "months") == unemp_adju$date, 
+                          unemp_adju$unemp, NA)
+         )
+
+         
+
+
 #### mutate & ifelse ####
 
 test <- events
