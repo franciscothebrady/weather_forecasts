@@ -360,7 +360,7 @@ mos_q24 <- data.frame(Q24.f2=mos_q24$Q24.x,
                       P24.f2=mos_q24$P24.x,
                       P24.f6=mos_q24$P24.y)
 
-events <- cbind.data.frame(events, mos_q24)
+events <- cbind.data.frame(events, mos_q12, mos_q24)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
