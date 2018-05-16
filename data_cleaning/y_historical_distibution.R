@@ -14,6 +14,7 @@ library(bea.R)
 library(tidyverse)
 library(geosphere)
 library(weathermetrics)
+library(lubridate)
 
 #### read in events ####
 events <- read_csv("weather_forecasts/data/2_events.csv")
@@ -24,79 +25,40 @@ events <- events %>%
 
 #### create df of unique stations and min/max dates to grab observations ####
 # no. of unique stations 
-unique(events$GHCND.ID)
+stations <- unique(events$GHCND.ID)
+# ghcnd stations with station info
+station_list <- rnoaa::ghcnd_stations()
+# keep info for stations we want
+event_station_list <- station_list %>% filter(id %in% stations, element == "PRCP")
 # max date
-lubridate::ceiling_date(max(events$EVENTS.begin_date), unit = "month")
+max_event_date <- lubridate::ceiling_date(max(events$EVENTS.begin_date), unit = "month")
 # min date
-lubridate::floor_date(min(events$EVENTS.begin_date), unit = "month")
-
-stations <- events %>% 
-  select(GHCND.ID, EVENTS.begin_date) %>%
-  mutate(date_min = lubridate::floor_date(min(events$EVENTS.begin_date), unit = "month"),
-         date_max = lubridate::ceiling_date(max(events$EVENTS.begin_date), unit = "month")) %>%
-  distinct(GHCND.ID, date_min, date_max)
+min_event_date <- lubridate::floor_date(min(events$EVENTS.begin_date), unit = "month")
+min_event_date > event_station_list$min_date[1]
+# convert first and last year into dates
+event_station_list <- event_station_list %>% 
+  mutate(min_date = ymd(paste0(first_year,"-01-01")),
+         max_date = ymd(paste0(last_year,"-01-01")))
+# replace the really old min_dates with our min_date
+event_station_list <- event_station_list %>%
+  mutate(min_date = if_else(min_date < min_event_date, min_event_date, min_date),
+         max_date = if_else(max_date >= max_event_date, max_event_date, max_date))
 
 #### get  weather obs from ghcnd stations (this code is mostly from 2-get_n_process_data.R ####
+# looks like ghcnd_search has had some bug fixes!
 
-#### THIS IS NOT DONE
-# logic here needs to either:
-# a) create vector of EVERY DAY from 01-01-2010 t0 12-31-2016
-#    and check for precip on each day, or
-# b) expand dataframe on each date from 01-01-2010 t0 12-31-2016
-#    which makes it easier to use only one counting (for j)
-
-
-# sadly have to deal with errors from ghcnd_search()
-temp_ls <- vector("list", length(stations$GHCND.ID))
-for (j in 1:length(stations$GHCND.ID)) {
-    result <- tryCatch({
-    data.frame(ghcnd_search(stations$GHCND.ID[j], var = "PRCP",
-                            date_min = stations$date_min[j],
-                            date_max = stations$date_min[j]),
-               stringsAsFactors = FALSE)
-  }, warning = function(w) {
-    return(
-      data.frame(prcp.id=stations$GHCND.ID[j],
-                 prcp.prcp=NA,
-                 prcp.date=stations$date_min[j],
-                 prcp.mflag="",
-                 prcp.qflag="",
-                 prcp.sflag="", stringsAsFactors = FALSE)
-    )
-  }, error = function(e) {
-    return(
-      data.frame(prcp.id=stations$GHCND.ID[j],
-                 prcp.prcp=NA,
-                 prcp.date=stations$date_min[j],
-                 prcp.mflag="",
-                 prcp.qflag="",
-                 prcp.sflag="", stringsAsFactors = FALSE)
-    )
-  }, finally = {
-    print(j)
-  })
-  temp_ls[[j]] <- result
+temp_ls <- vector("list", length(event_station_list$id))
+for(i in 1:length(event_station_list$id)){
+  station_observations <- data.frame(ghcnd_search(stationid = event_station_list$id[j], 
+                          var = "PRCP",
+                          date_min = event_station_list$min_date[j], 
+                          date_max = event_station_list$max_date[j]), 
+             stringsAsFactors = FALSE)
+  print(i)
 }
-rm(result)
-
-#### FIX THE ABOVE BEFORE MOVING ON
-
-# Hack job. Not sure why I can't just use dplyr::bind_rows()
-#station_obs <- dplyr::bind_rows(temp_ls)
-station_obs <- data.frame(prcp.id = character(),
-                          prcp.prcp = numeric(),
-                          prcp.date = as.Date(character()),
-                          stringsAsFactors = FALSE)
-for (i in 1:length(temp_ls)) {
-  station_obs <- rbind(station_obs, temp_ls[[i]][1:3])
-}
-station_obs$prcp.id <- as.character(station_obs$prcp.id)
-station_obs$prcp.prcp <- as.numeric(station_obs$prcp.prcp)
-station_obs$prcp.date <- as.Date(station_obs$prcp.date)
-rm(i)
 
 # Remove rows with prcp.prcp as NA
-station_obs <- station_obs[!is.na(station_obs$prcp.prcp),]
+station_obs <- station_observations[!is.na(station_observations$prcp.prcp),]
 
 # (Only if station_obs has PRCP values.) Convert units to inches from 0.1mm
 station_obs$prcp.prcp <- station_obs$prcp.prcp*0.1
