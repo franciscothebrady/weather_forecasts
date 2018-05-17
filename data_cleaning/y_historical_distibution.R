@@ -17,33 +17,40 @@ library(weathermetrics)
 library(lubridate)
 
 #### read in events ####
-events <- read_csv("data/2_events.csv")
+events <- read_csv("weather_forecasts/data/2_events.csv")
 # get rid of some duplicated vars (oops!)
 events <- events %>% 
   # select the ones that are NOT auto-renamed with a _1 suffix
   select(-contains("_1"))
 
-#### create df of unique stations and min/max dates to grab observations ####
-# no. of unique stations 
-stations <- unique(events$GHCND.ID)
+#### create df of unique stations and event beginning date -- our upper bound for historical weather! ####
+events_n_dates <- data.frame(GHCND.ID = events$GHCND.ID, EVENTS.begin_date = events$EVENTS.begin_date, stringsAsFactors = FALSE)
+events_n_dates <- events_n_dates %>%
+  group_by(GHCND.ID) %>%
+  arrange(desc(EVENTS.begin_date), .by_group = TRUE) %>%
+  distinct(GHCND.ID, .keep_all = TRUE)
+
 # ghcnd stations with station info
 station_list <- rnoaa::ghcnd_stations()
-# keep info for stations we want
-event_station_list <- station_list %>% filter(id %in% stations, element == "PRCP")
-rm(station_list)
-# max date
-max_event_date <- lubridate::ceiling_date(max(events$EVENTS.begin_date), unit = "month")
-# min date
-min_event_date <- lubridate::floor_date(min(events$EVENTS.begin_date), unit = "month")
 
-# convert first and last year into dates
-event_station_list <- event_station_list %>% 
-  mutate(min_date = ymd(paste0(first_year,"-01-01")),
-         max_date = ymd(paste0(last_year,"-01-01")))
-# replace the really old min_dates with our min_date
+# merge with station list (to tack on begin_date)
+event_station_list <- inner_join(station_list, events_n_dates, by = c("id" = "GHCND.ID"))
+# filter on prc
+event_station_list <- event_station_list %>% filter(element == "PRCP")
+rm(station_list)
+
+# convert first and last year into dates to compare to begin_date
 event_station_list <- event_station_list %>%
-  mutate(min_date = if_else(min_date < min_event_date, min_event_date, min_date),
-         max_date = if_else(max_date >= max_event_date, max_event_date, max_date))
+  mutate(min_date = ymd(paste0(first_year,"-01-01")),
+         max_date = ymd(paste0(last_year,"-12-31")))
+
+lower_bound <- lubridate::ymd("2000-01-01")
+
+# replace max date with begin_date, the upper bound for historical weather!
+# replace min_date with 2000-01-01 unless it's later than that, then just leave it be
+event_station_list <- event_station_list %>%
+  mutate(min_date = if_else(min_date < lower_bound, lower_bound, min_date),
+         max_date = if_else(max_date >= EVENTS.begin_date, EVENTS.begin_date, max_date))
 
 #### get  weather obs from ghcnd stations (this code is mostly from 2-get_n_process_data.R ####
 # looks like ghcnd_search has had some bug fixes!
@@ -51,21 +58,18 @@ event_station_list <- event_station_list %>%
 temp_ls <- vector("list", length(event_station_list$id))
 for(j in 1:length(event_station_list$id)){
   station_observations <- data.frame(ghcnd_search(stationid = event_station_list$id[j], 
-                          var = 'prcp',
-                          date_min = event_station_list$min_date[j], 
-                          date_max = event_station_list$max_date[j]), 
-             stringsAsFactors = FALSE)
+                                                  var = 'prcp',
+                                                  date_min = event_station_list$min_date[j], 
+                                                  date_max = event_station_list$max_date[j]), 
+                                     stringsAsFactors = FALSE)
+  temp_ls[[j]] <- station_observations
   print(j)
 }
-# this is returning an error:
-# [1] 1
-# [1] 2
-# Error in scan(file = file, what = what, sep = sep, quote = quote, dec = dec,  : 
-#                 scan() expected 'an integer', got '"2004"'
-# as.character() isn't doing anything
 
+# unlist into dataframe 
+historical <- map_df(.x = temp_ls, .f = ~as.data.frame(.x))
 # Remove rows with prcp.prcp as NA
-station_obs <- station_observations[!is.na(station_observations$prcp.prcp),]
+station_obs <- historical[!is.na(historical$prcp.prcp),]
 
 # (Only if station_obs has PRCP values.) Convert units to inches from 0.1mm
 station_obs$prcp.prcp <- station_obs$prcp.prcp*0.1
@@ -89,11 +93,17 @@ station_obs <- within(station_obs, prcp.prcp[prcp.prcp >= 0.10 & prcp.prcp < 0.2
 station_obs <- within(station_obs, prcp.prcp[prcp.prcp >= 0.01 & prcp.prcp < 0.10] <- 1)
 station_obs <- within(station_obs, prcp.prcp[prcp.prcp < 0.01] <- 0)
 
+write_csv(station_obs, "weather_forecasts/data/historical_observations.csv.gz")
+
+# the number of times a precip category happened 
+historical_freq <- station_obs %>%
+  mutate(year = lubridate::year(station_obs$prcp.date)) %>%
+  group_by(prcp.id, year, prcp.prcp) %>%
+  summarise(freq = n())
+
+write_csv(historical_freq, "weather_forecasts/data/historical_freqs.csv")
 
 
-
-
-# 
 # station_list <- unique(X2_events$GHCND.ID)
 # 
 # for(i in 1:3){
