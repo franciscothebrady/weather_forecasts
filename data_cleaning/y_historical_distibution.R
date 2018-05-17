@@ -17,7 +17,7 @@ library(weathermetrics)
 library(lubridate)
 
 #### read in events ####
-events <- read_csv("weather_forecasts/data/2_events.csv")
+events <- read_csv("data/2_events.csv")
 # get rid of some duplicated vars (oops!)
 events <- events %>% 
   # select the ones that are NOT auto-renamed with a _1 suffix
@@ -30,11 +30,12 @@ stations <- unique(events$GHCND.ID)
 station_list <- rnoaa::ghcnd_stations()
 # keep info for stations we want
 event_station_list <- station_list %>% filter(id %in% stations, element == "PRCP")
+rm(station_list)
 # max date
 max_event_date <- lubridate::ceiling_date(max(events$EVENTS.begin_date), unit = "month")
 # min date
 min_event_date <- lubridate::floor_date(min(events$EVENTS.begin_date), unit = "month")
-min_event_date > event_station_list$min_date[1]
+
 # convert first and last year into dates
 event_station_list <- event_station_list %>% 
   mutate(min_date = ymd(paste0(first_year,"-01-01")),
@@ -48,14 +49,20 @@ event_station_list <- event_station_list %>%
 # looks like ghcnd_search has had some bug fixes!
 
 temp_ls <- vector("list", length(event_station_list$id))
-for(i in 1:length(event_station_list$id)){
+for(j in 1:length(event_station_list$id)){
   station_observations <- data.frame(ghcnd_search(stationid = event_station_list$id[j], 
-                          var = "PRCP",
+                          var = 'prcp',
                           date_min = event_station_list$min_date[j], 
                           date_max = event_station_list$max_date[j]), 
              stringsAsFactors = FALSE)
-  print(i)
+  print(j)
 }
+# this is returning an error:
+# [1] 1
+# [1] 2
+# Error in scan(file = file, what = what, sep = sep, quote = quote, dec = dec,  : 
+#                 scan() expected 'an integer', got '"2004"'
+# as.character() isn't doing anything
 
 # Remove rows with prcp.prcp as NA
 station_obs <- station_observations[!is.na(station_observations$prcp.prcp),]
