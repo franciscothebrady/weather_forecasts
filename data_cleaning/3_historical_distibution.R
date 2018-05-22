@@ -122,7 +122,6 @@ events1 <- left_join(events, historical_freq, by = c("GHCND.ID" = "prcp.id", "pr
 write_csv(events1, "data/3_events.csv")
 
 
-
 # station_list <- unique(X2_events$GHCND.ID)
 # 
 # for(i in 1:3){
