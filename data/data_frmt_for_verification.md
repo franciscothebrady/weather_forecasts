@@ -13,6 +13,7 @@ To the `pop_data` data frame, append the POP values. (If you can, also add the a
 Next, arrange `pop_data` as such:
 
 id | GHCND.prcp_cat | GHCND.prcp_amt | Q24.f2 | ... | P24.f2 | ...
+---|----------------|----------------|--------|-----|--------|----
 
 You can remove all the other columns.
 
