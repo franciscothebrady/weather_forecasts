@@ -1,23 +1,35 @@
+# francisco 
+# what this script does
+# 1. read in events.csv
+# 2. download regional gdp figures 
+# 3. data wrangling 
+# 4. merge gdp onto events 
+
 library(tidyverse)
 library(bea.R)
-#-- API keys (fb's API keys)
-# Putting this here is very bad practice!
-# these are now in txt file. for the name just check the gitignore. 
 
-#-- get real GDP by MSA for 2015
+# read in 3_events.csv (from 3_historical distribution.R)
+events <- read_csv("data/3_events.csv", col_names = TRUE)
+
+# get time range
+start_year <- lubridate::year(min(events$EVENTS.begin_date))
+end_year   <- lubridate::year(max(events$EVENTS.end_date))
+
+beakey <- "this is where you put your API key from api_keys.txt"
+#-- get real GDP by MSA for start_year:end_year
 #-- (https://www.bea.gov/API/bea_web_service_api_user_guide.htm)
 beaSpecs <- list(
-  "UserID" = beakey,
+  "UserID" = ,
   "method" = "GetData",
   "datasetname" = "RegionalProduct",
   "Component" = "RGDP_MAN",
   "IndustryId" = "1",
   "GeoFIPS" = "MSA",
-  "Year" = "2015",
+  "Year" = as.character(start_year:end_year),
   "ResultFormat" = "json"
-)
+  )
 gdp_msa <- beaGet(beaSpecs, asWide = FALSE)
-rm(beaSpecs)
+rm(beaSpecs, start_year, end_year)
 
 #-- get CBSA code, area, and pop. den. directly from Census.gov
 #-- (https://www.census.gov/programs-surveys/popest.html)

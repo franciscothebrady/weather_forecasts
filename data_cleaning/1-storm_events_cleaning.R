@@ -32,7 +32,7 @@ library(readr)
 
 # grab a list of the storm event files
 
-files <- list.files(path="/href/scratch3/m1fmb02/weather_forecasts/data/", # change to path="/data/" when running on windows
+files <- list.files(path="data/", 
                     pattern="StormEvents_details-ftp_v1.0_d*",
                     full.names = TRUE, recursive = FALSE)
 
