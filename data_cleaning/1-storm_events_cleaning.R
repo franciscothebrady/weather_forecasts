@@ -161,10 +161,10 @@ events_clean <- function(){
 
     # write to csv
   colnames <- names(events)
-  write.table(colnames, "/href/scratch3/m1fmb02/weather_forecasts/data/colnames.csv",
+  write.table(colnames, "data/colnames.csv",
             append = FALSE, sep = ",")
   
-  readr::write_csv(events, "/href/scratch3/m1fmb02/weather_forecasts/data/1_events.csv",
+  readr::write_csv(events, "data/1_events.csv",
                    append = TRUE, col_names = FALSE)
   
   print(paste("Finished with", lubridate::year(events$EVENTS.begin_date[1]),

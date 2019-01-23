@@ -39,8 +39,8 @@ library(weathermetrics)
 # to the section marked STORM CLEANING
 
 # read in events and then tack on colnames weirdly
-events <- readr::read_csv("/href/scratch3/m1fmb02/weather_forecasts/data/1_events.csv", col_names = FALSE)
-colnames <- read.csv("/href/scratch3/m1fmb02/weather_forecasts/data/colnames.csv")
+events <- readr::read_csv("data/1_events.csv", col_names = FALSE)
+colnames <- read.csv("data/colnames.csv")
 names(events) <- colnames$x
 
 #-- find closest GHCND station of event and merge it in events
