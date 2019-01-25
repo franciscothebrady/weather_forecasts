@@ -68,3 +68,7 @@ permits <- permits %>%
   filter(cty_fips != "000") 
 
 ### figure out other weird aspects of the data? 
+# permits %>%
+#   filter(grepl(pattern = "County", x = county)) %>%
+#   ggplot(aes(x = date, y = sfi_builds, col = county)) + 
+#   geom_col(position = "stack", show.legend = FALSE)
