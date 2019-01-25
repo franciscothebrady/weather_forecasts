@@ -53,11 +53,11 @@ vars <- c("date","st_fips","cty_fips",
           "census_reg", "census_div", "county",
           "sfi_builds", "sfi_units", "sfi_values", # 101 imputed
           "f2i_builds", "f2i_units", "f2i_values", # 103 imputed
-          "f3i_builds", "f3i_units", "f3i_values", #104 imputed
+          "f3i_builds", "f3i_units", "f3i_values", # 104 imputed
           "mfi_builds", "mfi_units", "mfi_values", # 105 imputed
           "sfr_builds", "sfr_units", "sfr_values", # 101 reported
           "f2r_builds", "f2r_units", "f2r_values", # 103 reported
-          "f3r_builds", "f3r_units", "f3r_values", #104 reported
+          "f3r_builds", "f3r_units", "f3r_values", # 104 reported
           "mfr_builds", "mfr_units", "mfr_values") # 105 reported
           
 
