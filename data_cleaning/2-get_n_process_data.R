@@ -42,6 +42,8 @@ library(weathermetrics)
 events <- readr::read_csv("data/1_events.csv", col_names = FALSE)
 colnames <- read.csv("data/colnames.csv")
 names(events) <- colnames$x
+# for some reason have to remove duplicates 
+events <- unique(events)
 
 #-- find closest GHCND station of event and merge it in events
 
@@ -74,7 +76,7 @@ events <- merge(events, met_stations, by = "EVENTS.ID")
 # We could have used rnoaa::isd_stations() function, but there are fewer MOS stations
 # than ISD stations, so when we pull archived MOS data, it will return errors for
 # ISD stations that does not have MOS data.
-mos_stations <- read.csv("/href/scratch3/m1fmb02/weather_forecasts/data/mos_stations.csv", stringsAsFactors = FALSE)
+mos_stations <- read.csv("data/mos_stations.csv", stringsAsFactors = FALSE)
 
 
 #-- find nearest MOS station to event and merge in events
@@ -154,7 +156,7 @@ rm(result)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-save.image(paste0("/href/scratch3/m1fmb02/weather_forecasts/data/snapshots/", lubridate::today(),"post_ghcnd.RData"))
+save.image(paste0("data/snapshots/", lubridate::today(),"post_ghcnd.RData"))
 #load("data/snapshot_2017-07-06_2330.RData")
 
 
@@ -211,7 +213,7 @@ events <- rename(events, GHCND.prcp_cat = prcp.prcp)
 # to check it out, go down to the section named #### OLD MESONET MOS FUNCTION ####
 
 # load MOS retrival function
-source("/href/scratch3/m1fmb02/weather_forecasts/data_cleaning/get_archived_GFSX_MOS.R")
+source("data_cleaning/get_archived_GFSX_MOS.R")
 
 #-- beware! nasty hack job below
 
