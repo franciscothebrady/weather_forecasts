@@ -161,7 +161,7 @@ save.image(paste0("data/snapshots/", lubridate::today(),"post_ghcnd.RData"))
 
 
 # Hack job. Not sure why I can't just use dplyr::bind_rows()
-#station_obs <- dplyr::bind_rows(temp_ls)
+# station_obs2 <- dplyr::bind_rows(temp_ls)
 station_obs <- data.frame(prcp.id = character(),
                           prcp.prcp = numeric(),
                           prcp.date = as.Date(character()),
@@ -366,10 +366,10 @@ events <- cbind.data.frame(events, mos_q24)
 
 #-- save workspace to not have to re-create dataset when something goes wrong
 #-- for time consuming processes
-save.image(paste0("/href/scratch3/m1fmb02/weather_forecasts/data/snapshots/",lubridate::today(),"post_mos.RData"))
+save.image(paste0("/data/snapshots/",lubridate::today(),"post_mos.RData"))
 
 # write to csv for next script!
-readr::write_csv(events, "/href/scratch3/m1fmb02/weather_forecasts/data/2_events.csv", col_names = TRUE)
+readr::write_csv(events, "data/2_events.csv", col_names = TRUE)
 
 
 #### OLD CODE ####
